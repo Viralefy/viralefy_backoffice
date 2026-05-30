@@ -11,6 +11,7 @@ const links = [
   { href: "/plans", label: "Serviços" },
   { href: "/currencies", label: "Moedas" },
   { href: "/gateways", label: "Gateways" },
+  { href: "/invoices", label: "Recargas" },
   { href: "/tickets", label: "Suporte" },
 ];
 

@@ -129,6 +129,29 @@ export const adminApi = {
     request<void>(`/v1/admin/tickets/${id}/messages`, { method: "POST", body: JSON.stringify({ body }) }),
   patchTicket: (id: string, body: { status?: string; priority?: string }) =>
     request<void>(`/v1/admin/tickets/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+
+  listInvoices: (status?: string) =>
+    request<Invoice[]>(`/v1/admin/invoices${status ? `?status=${status}` : ""}`),
+  markInvoicePaid: (id: string) =>
+    request<Invoice>(`/v1/admin/invoices/${id}/mark-paid`, { method: "POST" }),
+};
+
+export type Invoice = {
+  id: string;
+  user_id: string;
+  amount_cents: number;
+  currency: string;
+  display_currency: string;
+  display_amount: string;
+  settlement_currency: string;
+  settlement_amount: string;
+  status: "pending" | "paid" | "failed" | "cancelled";
+  external_ref?: string | null;
+  payment_url?: string | null;
+  payment_extra: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+  paid_at?: string | null;
 };
 
 export type TicketStatus = "open" | "pending" | "resolved" | "closed";
