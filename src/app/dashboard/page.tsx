@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type Order } from "@/lib/api";
 
+const statusLabel: Record<string, string> = {
+  pending: "Pendente",
+  paid: "Pago",
+  failed: "Falhou",
+  cancelled: "Cancelado",
+};
+
 export default function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -21,9 +28,10 @@ export default function DashboardPage() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Status</th>
-              <th>Valor</th>
               <th>Plano</th>
+              <th>Status</th>
+              <th>Exibido</th>
+              <th>Cobrança</th>
               <th>Criado</th>
             </tr>
           </thead>
@@ -31,9 +39,15 @@ export default function DashboardPage() {
             {orders.map((o) => (
               <tr key={o.id}>
                 <td>{o.id.slice(0, 8)}…</td>
-                <td>{o.status}</td>
-                <td>R$ {(o.amount_cents / 100).toFixed(2)}</td>
-                <td>{o.plan_id.slice(0, 8)}…</td>
+                <td>{o.plan_name || o.plan_id.slice(0, 8)}</td>
+                <td>{statusLabel[o.status] ?? o.status}</td>
+                <td>{o.display_amount} {o.display_currency}</td>
+                <td>
+                  {o.settlement_amount} {o.settlement_currency}
+                  {o.settlement_currency !== o.display_currency && (
+                    <span style={{ color: "var(--muted)" }}> *</span>
+                  )}
+                </td>
                 <td>{new Date(o.created_at).toLocaleString("pt-BR")}</td>
               </tr>
             ))}

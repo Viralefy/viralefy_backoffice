@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { login, setToken } from "@/lib/api";
+import { login, setSession } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function LoginPage() {
     const fd = new FormData(e.currentTarget);
     try {
       const res = await login(String(fd.get("email")), String(fd.get("password")));
-      setToken(res.token);
+      setSession(res.token, res.role, res.permissions);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");
