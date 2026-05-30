@@ -8,6 +8,7 @@ import { clearToken, getToken } from "@/lib/auth";
 
 const links = [
   { href: "/dashboard", label: "Pedidos" },
+  { href: "/users", label: "Clientes" },
   { href: "/plans", label: "Serviços" },
   { href: "/currencies", label: "Moedas" },
   { href: "/gateways", label: "Gateways" },

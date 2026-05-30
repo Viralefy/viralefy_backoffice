@@ -134,6 +134,52 @@ export const adminApi = {
     request<Invoice[]>(`/v1/admin/invoices${status ? `?status=${status}` : ""}`),
   markInvoicePaid: (id: string) =>
     request<Invoice>(`/v1/admin/invoices/${id}/mark-paid`, { method: "POST" }),
+
+  listUsers: () => request<UserView[]>("/v1/admin/users"),
+  getUser: (id: string) => request<UserDetail>(`/v1/admin/users/${id}`),
+  adjustCredits: (id: string, deltaCents: number, description: string) =>
+    request<{ user_id: string; balance_cents: number }>(
+      `/v1/admin/users/${id}/credits/adjust`,
+      { method: "POST", body: JSON.stringify({ delta_cents: deltaCents, description }) }
+    ),
+  markOrderPaid: (id: string) =>
+    request<void>(`/v1/admin/orders/${id}/mark-paid`, { method: "POST" }),
+};
+
+export type UserView = {
+  id: string;
+  email: string;
+  name: string;
+  instagram?: string;
+  created_at: string;
+  balance_cents: number;
+};
+
+export type AdminProfile = {
+  id: string;
+  platform: "instagram" | "tiktok";
+  handle: string;
+  display_name: string;
+  verified: boolean;
+  created_at: string;
+};
+
+export type CreditTx = {
+  id: string;
+  type: "recharge" | "spend" | "refund" | "adjustment";
+  amount_cents: number;
+  balance_after_cents: number;
+  description: string;
+  order_id?: string | null;
+  invoice_id?: string | null;
+  created_at: string;
+};
+
+export type UserDetail = {
+  user: UserView;
+  credits: { user_id: string; balance_cents: number };
+  transactions: CreditTx[];
+  profiles: AdminProfile[];
 };
 
 export type Invoice = {
