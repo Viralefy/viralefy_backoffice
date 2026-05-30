@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -10,6 +11,7 @@ const links = [
   { href: "/plans", label: "Serviços" },
   { href: "/currencies", label: "Moedas" },
   { href: "/gateways", label: "Gateways" },
+  { href: "/tickets", label: "Suporte" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -23,7 +25,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="layout">
       <aside className="sidebar">
-        <strong style={{ display: "block", marginBottom: "1.5rem" }}>Viralefy</strong>
+        <Link href="/dashboard" aria-label="Viralefy" style={{ display: "inline-flex", marginBottom: "1.5rem" }}>
+          <Image src="/logo.png" alt="Viralefy" width={2471} height={704} priority style={{ height: 28, width: "auto" }} />
+        </Link>
         {links.map((l) => (
           <Link
             key={l.href}

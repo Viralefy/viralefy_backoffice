@@ -121,4 +121,51 @@ export const adminApi = {
   ) => request<Currency>(`/v1/admin/currencies/${code}`, { method: "PUT", body: JSON.stringify(body) }),
 
   listOrders: () => request<Order[]>("/v1/admin/orders"),
+
+  listTickets: (status?: string) =>
+    request<TicketView[]>(`/v1/admin/tickets${status ? `?status=${status}` : ""}`),
+  getTicket: (id: string) => request<TicketDetail>(`/v1/admin/tickets/${id}`),
+  replyTicket: (id: string, body: string) =>
+    request<void>(`/v1/admin/tickets/${id}/messages`, { method: "POST", body: JSON.stringify({ body }) }),
+  patchTicket: (id: string, body: { status?: string; priority?: string }) =>
+    request<void>(`/v1/admin/tickets/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+};
+
+export type TicketStatus = "open" | "pending" | "resolved" | "closed";
+export type TicketPriority = "low" | "normal" | "high" | "urgent";
+
+export type Ticket = {
+  id: string;
+  user_id: string;
+  subject: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  order_id?: string | null;
+  assigned_admin_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TicketView = Ticket & {
+  user_name: string;
+  user_email: string;
+  message_count: number;
+  last_message_at: string;
+  last_author_type: "user" | "admin" | "";
+};
+
+export type TicketMessage = {
+  id: string;
+  ticket_id: string;
+  author_type: "user" | "admin";
+  author_id: string;
+  author_name: string;
+  body: string;
+  created_at: string;
+};
+
+export type TicketDetail = {
+  ticket: Ticket;
+  view?: TicketView;
+  messages: TicketMessage[];
 };
