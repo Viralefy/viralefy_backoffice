@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type Category, type Currency, type Plan } from "@/lib/api";
 import { can } from "@/lib/auth";
@@ -11,7 +12,6 @@ export default function PlansPage() {
   const [currencies, setCurrencies] = useState<Currency[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<string | null>(null);
   const writable = can("plans:write");
 
   function reload() {
@@ -45,6 +45,8 @@ export default function PlansPage() {
         name: String(fd.get("name")),
         description: String(fd.get("description")),
         category: String(fd.get("category")),
+        platform: String(fd.get("platform") ?? "instagram"),
+        target_type: String(fd.get("target_type") ?? "profile"),
         followers_qty: Number(fd.get("followers_qty")),
         active: fd.get("active") === "on",
         sort_order: Number(fd.get("sort_order")),
@@ -54,18 +56,6 @@ export default function PlansPage() {
       reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao criar plano");
-    }
-  }
-
-  async function savePrices(plan: Plan, e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    try {
-      await adminApi.updatePlan(plan.id, { ...plan, prices: collectPrices(fd) });
-      setEditing(null);
-      reload();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar preços");
     }
   }
 
@@ -106,7 +96,7 @@ export default function PlansPage() {
             </div>
             <div>
               <label className="label">Categoria</label>
-              <select className="input" name="category" defaultValue="seguidores">
+              <select className="input" name="category" defaultValue="seguidores_instagram">
                 {categories.map((c) => (
                   <option key={c.code} value={c.code}>{c.label}</option>
                 ))}
@@ -116,6 +106,21 @@ export default function PlansPage() {
           <label className="label">Descrição</label>
           <input className="input" name="description" />
           <div className="form-row">
+            <div>
+              <label className="label">Plataforma</label>
+              <select className="input" name="platform" defaultValue="instagram">
+                <option value="instagram">Instagram</option>
+                <option value="tiktok">TikTok</option>
+                <option value="facebook">Facebook</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Tipo de alvo</label>
+              <select className="input" name="target_type" defaultValue="profile">
+                <option value="profile">Perfil</option>
+                <option value="publication">Publicação</option>
+              </select>
+            </div>
             <div>
               <label className="label">Quantidade</label>
               <input className="input" name="followers_qty" type="number" defaultValue={1} required />
@@ -169,17 +174,27 @@ export default function PlansPage() {
                 <td>{p.active ? "Sim" : "Não"}</td>
                 <td>
                   {writable ? (
-                    <>
-                      <button type="button" className="btn btn-ghost" onClick={() => setEditing(editing === p.id ? null : p.id)}>
-                        Preços
-                      </button>{" "}
-                      <button type="button" className="btn btn-ghost" onClick={() => toggleActive(p)}>
-                        Toggle
-                      </button>{" "}
-                      <button type="button" className="btn btn-danger" onClick={() => remove(p.id)}>
+                    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                      <Link href={`/plans/${p.id}/edit`} className="btn btn-primary" style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}>
+                        Editar
+                      </Link>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}
+                        onClick={() => toggleActive(p)}
+                      >
+                        {p.active ? "Desativar" : "Ativar"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}
+                        onClick={() => remove(p.id)}
+                      >
                         Excluir
                       </button>
-                    </>
+                    </div>
                   ) : (
                     <span style={{ color: "var(--muted)" }}>—</span>
                   )}
@@ -189,28 +204,6 @@ export default function PlansPage() {
           </tbody>
         </table>
       </div>
-
-      {editing && writable && (() => {
-        const plan = plans.find((p) => p.id === editing);
-        if (!plan) return null;
-        return (
-          <form className="card" onSubmit={(e) => savePrices(plan, e)} style={{ marginTop: "1rem" }}>
-            <h3 style={{ marginBottom: "0.75rem" }}>Preços de “{plan.name}”</h3>
-            <div className="form-row" style={{ flexWrap: "wrap" }}>
-              {currencies.map((c) => (
-                <div key={c.code}>
-                  <label className="label">{c.symbol} {c.code}</label>
-                  <input className="input" name={`price_${c.code}`} defaultValue={plan.prices?.[c.code] ?? ""} style={{ width: "8rem" }} />
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: "0.75rem" }}>
-              <button type="submit" className="btn btn-primary">Salvar preços</button>{" "}
-              <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>Fechar</button>
-            </div>
-          </form>
-        );
-      })()}
     </AdminShell>
   );
 }

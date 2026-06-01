@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type Invoice } from "@/lib/api";
 import { can } from "@/lib/auth";

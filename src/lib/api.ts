@@ -27,6 +27,8 @@ export type Plan = {
   name: string;
   description: string;
   category: string;
+  platform?: string;      // instagram | tiktok | facebook
+  target_type?: string;   // profile | publication
   followers_qty: number;
   price_cents: number;
   currency: string;
@@ -65,6 +67,10 @@ export type Order = {
   plan_id: string;
   plan_name: string;
   plan_category?: string;
+  // Hidratado pelo backend (JOIN com users). Mostrado na listagem para
+  // não exibir UUID puro.
+  user_name?: string;
+  user_email?: string;
   status: string;
   amount_cents: number;
   currency: string;
@@ -87,6 +93,17 @@ export type Order = {
   delivery_source?: string | null;
   created_at: string;
   updated_at?: string;
+};
+
+// InvoiceDetail = invoice + user hidratado. Resposta de GET
+// /v1/admin/invoices/{id}.
+export type InvoiceDetail = {
+  invoice: Invoice;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 };
 
 // OrderDetail = order com profile e user hidratados. Forma da resposta
@@ -183,6 +200,7 @@ export const adminApi = {
 
   listInvoices: (status?: string) =>
     request<Invoice[]>(`/v1/admin/invoices${status ? `?status=${status}` : ""}`),
+  getInvoice: (id: string) => request<InvoiceDetail>(`/v1/admin/invoices/${id}`),
   markInvoicePaid: (id: string) =>
     request<Invoice>(`/v1/admin/invoices/${id}/mark-paid`, { method: "POST" }),
 
@@ -243,6 +261,7 @@ export type Invoice = {
   settlement_currency: string;
   settlement_amount: string;
   status: "pending" | "paid" | "failed" | "cancelled";
+  gateway_id?: string | null;
   external_ref?: string | null;
   payment_url?: string | null;
   payment_extra: Record<string, string>;

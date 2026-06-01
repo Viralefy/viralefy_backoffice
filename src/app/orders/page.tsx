@@ -42,6 +42,8 @@ export default function OrdersPage() {
         return (
           o.id.toLowerCase().includes(needle) ||
           o.user_id.toLowerCase().includes(needle) ||
+          (o.user_name?.toLowerCase().includes(needle) ?? false) ||
+          (o.user_email?.toLowerCase().includes(needle) ?? false) ||
           (o.plan_name?.toLowerCase().includes(needle) ?? false) ||
           (o.plan_category?.toLowerCase().includes(needle) ?? false)
         );
@@ -69,7 +71,7 @@ export default function OrdersPage() {
         ))}
         <input
           className="input"
-          placeholder="Buscar por ID/categoria/plano/usuário…"
+          placeholder="Buscar por ID/nome/e-mail/categoria/plano…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           style={{ flex: 1, minWidth: 220 }}
@@ -81,6 +83,7 @@ export default function OrdersPage() {
           <thead>
             <tr style={{ background: "var(--accent-dim)", borderBottom: "1px solid var(--border)" }}>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>ID</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Cliente</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Plano</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Categoria</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Status</th>
@@ -98,6 +101,22 @@ export default function OrdersPage() {
               >
                 <td style={{ padding: "0.65rem 1rem", fontFamily: "monospace", fontSize: "0.85rem" }}>
                   {o.id.slice(0, 8)}
+                </td>
+                <td style={{ padding: "0.65rem 1rem" }} onClick={(e) => e.stopPropagation()}>
+                  {o.user_name ? (
+                    <>
+                      <Link href={`/users/${o.user_id}`} style={{ fontWeight: 600 }}>
+                        {o.user_name}
+                      </Link>
+                      {o.user_email && (
+                        <div style={{ color: "var(--muted)", fontSize: "0.75rem" }}>{o.user_email}</div>
+                      )}
+                    </>
+                  ) : (
+                    <span style={{ fontFamily: "monospace", fontSize: "0.8rem", color: "var(--muted)" }}>
+                      {o.user_id.slice(0, 8)}…
+                    </span>
+                  )}
                 </td>
                 <td style={{ padding: "0.65rem 1rem" }}>{o.plan_name || "—"}</td>
                 <td style={{ padding: "0.65rem 1rem", color: "var(--muted)", fontSize: "0.85rem" }}>
