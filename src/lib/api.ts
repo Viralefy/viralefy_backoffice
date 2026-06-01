@@ -79,8 +79,32 @@ export type Order = {
   custom_data?: Record<string, unknown>;
   tracking?: Record<string, unknown>;
   external_ref?: string | null;
+  baseline_metrics?: Record<string, unknown> | null;
+  baseline_captured_at?: string | null;
+  baseline_source?: string | null;
+  delivery_metrics?: Record<string, unknown> | null;
+  delivery_captured_at?: string | null;
+  delivery_source?: string | null;
   created_at: string;
   updated_at?: string;
+};
+
+// OrderDetail = order com profile e user hidratados. Forma da resposta
+// do GET /v1/admin/orders/{id}.
+export type OrderDetail = {
+  order: Order;
+  profile?: {
+    id: string;
+    handle: string;
+    display_name: string;
+    platform: string;
+    verified: boolean;
+  };
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
 };
 
 export type MetricsSummary = {
@@ -139,9 +163,14 @@ export const adminApi = {
   ) => request<Currency>(`/v1/admin/currencies/${code}`, { method: "PUT", body: JSON.stringify(body) }),
 
   listOrders: () => request<Order[]>("/v1/admin/orders"),
-  getOrder: (id: string) => request<Order>(`/v1/admin/orders/${id}`),
+  getOrder: (id: string) => request<OrderDetail>(`/v1/admin/orders/${id}`),
   patchOrder: (id: string, body: { status?: string }) =>
     request<Order>(`/v1/admin/orders/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  captureOrderMetrics: (id: string, kind: "baseline" | "delivery" = "baseline") =>
+    request<Order>(`/v1/admin/orders/${id}/capture-metrics`, {
+      method: "POST",
+      body: JSON.stringify({ kind }),
+    }),
   metricsSummary: () => request<MetricsSummary>("/v1/admin/metrics/summary"),
 
   listTickets: (status?: string) =>

@@ -4,23 +4,33 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AdminShell } from "@/components/AdminShell";
-import { adminApi, type Order } from "@/lib/api";
+import { adminApi, type OrderDetail } from "@/lib/api";
 import { can } from "@/lib/auth";
 
-// Detalhe do pedido. Mostra TUDO que está em orders + permite editar
-// status (admins:manage). Marcar pago dispara o hook completo de
-// pós-pagamento (email + ticket + webhook); update direto de status
-// pula esses hooks (correção emergencial).
+// Detalhe do pedido — order completo + profile e user hidratados (clicáveis
+// para a página do usuário). Inclui visualização dos snapshots baseline e
+// delivery (fonte secundária de verdade sobre a entrega do gateway) e
+// botão de Capturar agora (manual refresh).
+//
+// Edição de status: admins:manage troca direto (sem hooks) OU dispara
+// mark-paid (com email + ticket + admin webhook).
 
 const STATUS_OPTIONS = ["pending", "paid", "failed", "cancelled"];
+
+function platformURL(platform: string, handle: string): string {
+  if (platform === "instagram") return `https://www.instagram.com/${encodeURIComponent(handle)}/`;
+  if (platform === "tiktok") return `https://www.tiktok.com/@${encodeURIComponent(handle)}`;
+  return "#";
+}
 
 export default function OrderDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const id = params?.id ?? "";
-  const [order, setOrder] = useState<Order | null>(null);
+  const [data, setData] = useState<OrderDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [capturing, setCapturing] = useState(false);
   const [statusDraft, setStatusDraft] = useState<string>("");
   const canEdit = can("admins:manage");
 
@@ -28,9 +38,9 @@ export default function OrderDetailPage() {
     if (!id) return;
     adminApi
       .getOrder(id)
-      .then((o) => {
-        setOrder(o);
-        setStatusDraft(o.status);
+      .then((d) => {
+        setData(d);
+        setStatusDraft(d.order.status);
       })
       .catch((e) => setError(e.message));
   }
@@ -41,13 +51,13 @@ export default function OrderDetailPage() {
   }, [id]);
 
   async function saveStatus() {
-    if (!order || statusDraft === order.status) return;
-    if (!confirm(`Mudar status de "${order.status}" para "${statusDraft}"? Essa ação não dispara email/webhook.`)) {
+    if (!data || statusDraft === data.order.status) return;
+    if (!confirm(`Mudar status de "${data.order.status}" para "${statusDraft}"? Essa ação não dispara email/webhook.`)) {
       return;
     }
     setSaving(true);
     try {
-      await adminApi.patchOrder(order.id, { status: statusDraft });
+      await adminApi.patchOrder(data.order.id, { status: statusDraft });
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao salvar");
@@ -57,7 +67,7 @@ export default function OrderDetailPage() {
   }
 
   async function markPaid() {
-    if (!order) return;
+    if (!data) return;
     if (
       !confirm(
         "Marcar como pago via fluxo de pagamento? Vai disparar email de confirmação, abrir ticket (se categoria com handoff) e notificar admin via webhook.",
@@ -67,12 +77,25 @@ export default function OrderDetailPage() {
     }
     setSaving(true);
     try {
-      await adminApi.markOrderPaid(order.id);
+      await adminApi.markOrderPaid(data.order.id);
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function capture(kind: "baseline" | "delivery") {
+    if (!data) return;
+    setCapturing(true);
+    try {
+      await adminApi.captureOrderMetrics(data.order.id, kind);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Falha no scrape");
+    } finally {
+      setCapturing(false);
     }
   }
 
@@ -86,13 +109,17 @@ export default function OrderDetailPage() {
       </AdminShell>
     );
   }
-  if (!order) {
+  if (!data) {
     return (
       <AdminShell>
         <p style={{ color: "var(--muted)" }}>Carregando…</p>
       </AdminShell>
     );
   }
+
+  const order = data.order;
+  const profile = data.profile;
+  const user = data.user;
 
   return (
     <AdminShell>
@@ -111,15 +138,73 @@ export default function OrderDetailPage() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
-        <Section title="Dados do pedido">
+        {/* Dados do pedido + cliente e perfil hidratados */}
+        <Section title="Pedido">
           <KV k="ID" v={order.id} mono />
           <KV k="Plano" v={`${order.plan_name} (${order.plan_id.slice(0, 8)})`} />
           <KV k="Categoria" v={order.plan_category ?? "—"} />
-          <KV k="Usuário" v={order.user_id} mono />
           <KV k="Método" v={order.payment_method ?? "gateway"} />
           <KV k="External ref" v={order.external_ref ?? "—"} mono />
           <KV k="Criado" v={new Date(order.created_at).toLocaleString("pt-BR")} />
           {order.updated_at && <KV k="Atualizado" v={new Date(order.updated_at).toLocaleString("pt-BR")} />}
+        </Section>
+
+        <Section title="Cliente">
+          {user ? (
+            <>
+              <div style={{ marginBottom: "0.5rem" }}>
+                <Link href={`/users/${user.id}`} style={{ fontWeight: 600, fontSize: "1rem" }}>
+                  {user.name}
+                </Link>
+              </div>
+              <KV k="E-mail" v={user.email} />
+              <KV k="ID" v={user.id} mono />
+            </>
+          ) : (
+            <KV k="User ID" v={order.user_id} mono />
+          )}
+        </Section>
+
+        <Section title="Alvo">
+          {profile ? (
+            <>
+              <div style={{ marginBottom: "0.5rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <a
+                  href={platformURL(profile.platform, profile.handle)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontWeight: 600, fontSize: "1rem" }}
+                >
+                  @{profile.handle}
+                </a>
+                <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+                  {profile.platform === "tiktok" ? "🎵" : "📷"} {profile.platform}
+                </span>
+                {profile.verified && <span title="Verificado" style={{ color: "var(--accent)" }}>✓</span>}
+              </div>
+              {profile.display_name && <KV k="Nome" v={profile.display_name} />}
+              <KV k="Profile ID" v={profile.id} mono />
+              {user && (
+                <Link href={`/users/${user.id}`} style={{ fontSize: "0.85rem", textDecoration: "underline" }}>
+                  Ver outros perfis do cliente →
+                </Link>
+              )}
+            </>
+          ) : order.publication_url ? (
+            <>
+              <a
+                href={order.publication_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ fontWeight: 600, fontSize: "0.95rem", wordBreak: "break-all" }}
+              >
+                {order.publication_url}
+              </a>
+              <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0 0" }}>Publicação alvo</p>
+            </>
+          ) : (
+            <p style={{ color: "var(--muted)" }}>Sem alvo</p>
+          )}
         </Section>
 
         <Section title="Valores">
@@ -127,11 +212,6 @@ export default function OrderDetailPage() {
           <KV k="Cobrança" v={`${order.settlement_amount} ${order.settlement_currency}`} />
           <KV k="Cents (base USD)" v={String(order.amount_cents)} />
           <KV k="Moeda canônica" v={order.currency} />
-        </Section>
-
-        <Section title="Alvo">
-          <KV k="Profile ID" v={order.profile_id ?? "—"} mono />
-          <KV k="Publication URL" v={order.publication_url ?? "—"} />
         </Section>
 
         <Section title="Status">
@@ -167,6 +247,14 @@ export default function OrderDetailPage() {
         </Section>
       </div>
 
+      {/* Baseline vs Delivery — fonte secundária de verdade pra confirmar entrega */}
+      <BaselineDeliveryCard
+        order={order}
+        canEdit={canEdit}
+        capturing={capturing}
+        onCapture={capture}
+      />
+
       {/* Custom data — schema livre da categoria (recovery/BMs/perfis) */}
       {order.custom_data && Object.keys(order.custom_data).length > 0 && (
         <div className="card" style={{ marginBottom: "1.5rem" }}>
@@ -187,6 +275,118 @@ export default function OrderDetailPage() {
         </div>
       )}
     </AdminShell>
+  );
+}
+
+function BaselineDeliveryCard({
+  order,
+  canEdit,
+  capturing,
+  onCapture,
+}: {
+  order: OrderDetail["order"];
+  canEdit: boolean;
+  capturing: boolean;
+  onCapture: (kind: "baseline" | "delivery") => void;
+}) {
+  const hasBaseline = !!order.baseline_metrics && Object.keys(order.baseline_metrics).length > 0;
+  const hasDelivery = !!order.delivery_metrics && Object.keys(order.delivery_metrics).length > 0;
+
+  return (
+    <div className="card" style={{ marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", flexWrap: "wrap" }}>
+        <div>
+          <h2 style={{ marginTop: 0, marginBottom: "0.25rem", fontSize: "1.05rem" }}>Métricas do alvo (2ª fonte)</h2>
+          <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
+            Snapshot público do perfil/post pra confirmar que o gateway entregou.
+            Compare <code>delivery − baseline</code> com a quantidade do plano.
+          </p>
+        </div>
+        {canEdit && (
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => onCapture("baseline")}
+              disabled={capturing}
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+            >
+              {capturing ? "Capturando…" : hasBaseline ? "↻ Re-capturar baseline" : "📸 Capturar baseline agora"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => onCapture("delivery")}
+              disabled={capturing}
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+            >
+              {capturing ? "Capturando…" : hasDelivery ? "↻ Re-capturar delivery" : "📸 Capturar delivery agora"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
+        <MetricColumn
+          label="Baseline (pré-entrega)"
+          metrics={order.baseline_metrics}
+          capturedAt={order.baseline_captured_at}
+          source={order.baseline_source}
+        />
+        <MetricColumn
+          label="Delivery (pós-entrega)"
+          metrics={order.delivery_metrics}
+          capturedAt={order.delivery_captured_at}
+          source={order.delivery_source}
+        />
+      </div>
+    </div>
+  );
+}
+
+function MetricColumn({
+  label,
+  metrics,
+  capturedAt,
+  source,
+}: {
+  label: string;
+  metrics?: Record<string, unknown> | null;
+  capturedAt?: string | null;
+  source?: string | null;
+}) {
+  return (
+    <div style={{ background: "var(--accent-dim)", padding: "0.75rem", borderRadius: "0.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.5rem" }}>
+        <strong style={{ fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</strong>
+        {source && (
+          <span
+            style={{
+              fontSize: "0.7rem",
+              padding: "0.1rem 0.4rem",
+              borderRadius: "0.4rem",
+              background: source === "manual_pending" ? "var(--danger, #ef4444)" : "var(--accent)",
+              color: "#000",
+              fontWeight: 700,
+            }}
+          >
+            {source}
+          </span>
+        )}
+      </div>
+      {metrics && Object.keys(metrics).length > 0 ? (
+        <pre style={{ fontSize: "0.8rem", margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          {JSON.stringify(metrics, null, 2)}
+        </pre>
+      ) : (
+        <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>Ainda não capturado.</p>
+      )}
+      {capturedAt && (
+        <p style={{ color: "var(--muted)", fontSize: "0.75rem", margin: "0.5rem 0 0" }}>
+          @ {new Date(capturedAt).toLocaleString("pt-BR")}
+        </p>
+      )}
+    </div>
   );
 }
 
