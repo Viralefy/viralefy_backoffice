@@ -63,24 +63,32 @@ export default function InvoicesPage() {
         ))}
       </div>
 
-      <div className="card">
-        <table>
+      <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr>
-              <th>ID</th>
-              <th>Usuário</th>
-              <th>Valor</th>
-              <th>Status</th>
-              <th>Criada</th>
-              <th></th>
+            <tr style={{ background: "var(--accent-dim)", borderBottom: "1px solid var(--border)" }}>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>ID</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Usuário</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "right" }}>Valor</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Status</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Criada</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }} />
             </tr>
           </thead>
           <tbody>
             {list.map((inv) => (
-              <tr key={inv.id}>
-                <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>#{inv.id.slice(0, 8)}</td>
-                <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>{inv.user_id.slice(0, 8)}…</td>
-                <td>
+              <tr
+                key={inv.id}
+                style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}
+                onClick={() => (window.location.href = `/invoices/${inv.id}`)}
+              >
+                <td style={{ padding: "0.65rem 1rem", fontFamily: "monospace", fontSize: "0.8rem" }}>
+                  #{inv.id.slice(0, 8)}
+                </td>
+                <td style={{ padding: "0.65rem 1rem", fontFamily: "monospace", fontSize: "0.8rem" }}>
+                  {inv.user_id.slice(0, 8)}…
+                </td>
+                <td style={{ padding: "0.65rem 1rem", textAlign: "right" }}>
                   {usd(inv.amount_cents)}
                   {inv.display_currency !== "USD" && (
                     <div style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
@@ -88,24 +96,31 @@ export default function InvoicesPage() {
                     </div>
                   )}
                 </td>
-                <td>
+                <td style={{ padding: "0.65rem 1rem" }}>
                   <span style={{ fontSize: "0.85rem", color: inv.status === "paid" ? "var(--success)" : "var(--muted)" }}>
                     {inv.status}
                   </span>
                 </td>
-                <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
+                <td style={{ padding: "0.65rem 1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
                   {new Date(inv.created_at).toLocaleString("pt-BR")}
                 </td>
-                <td>
+                <td style={{ padding: "0.65rem 1rem", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
+                  <Link
+                    href={`/invoices/${inv.id}`}
+                    className="btn btn-outline"
+                    style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}
+                  >
+                    Abrir
+                  </Link>
                   {inv.status === "pending" && canMarkPaid && (
                     <button
                       type="button"
                       className="btn btn-primary"
-                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+                      style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem", marginLeft: "0.5rem" }}
                       onClick={() => markPaid(inv.id)}
                       disabled={marking === inv.id}
                     >
-                      {marking === inv.id ? "Marcando…" : "Marcar paga"}
+                      {marking === inv.id ? "…" : "Pagar"}
                     </button>
                   )}
                 </td>
