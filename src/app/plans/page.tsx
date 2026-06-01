@@ -152,7 +152,7 @@ export default function PlansPage() {
               <th>Nome</th>
               <th>Categoria</th>
               <th>Qtd</th>
-              <th>Preço (BRL)</th>
+              <th>Preço (USD)</th>
               <th>Moedas</th>
               <th>Ativo</th>
               <th></th>
@@ -164,7 +164,7 @@ export default function PlansPage() {
                 <td>{p.name}</td>
                 <td>{labelFor(p.category)}</td>
                 <td>{p.followers_qty.toLocaleString("pt-BR")}</td>
-                <td>R$ {(p.price_cents / 100).toFixed(2)}</td>
+                <td>$ {(p.price_cents / 100).toFixed(2)}</td>
                 <td>{Object.keys(p.prices ?? {}).length}</td>
                 <td>{p.active ? "Sim" : "Não"}</td>
                 <td>
