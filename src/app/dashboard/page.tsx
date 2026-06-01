@@ -1,100 +1,144 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AdminShell } from "@/components/AdminShell";
-import { adminApi, type Order } from "@/lib/api";
-import { can } from "@/lib/auth";
+import { adminApi, type MetricsSummary } from "@/lib/api";
 
-const statusLabel: Record<string, string> = {
-  pending: "Pendente",
-  paid: "Pago",
-  failed: "Falhou",
-  cancelled: "Cancelado",
-};
+// Dashboard de métricas — cards de status + revenue, top categorias e
+// série de 30d (mini-bar chart inline em SVG, sem dependência).
+// Pedidos listados ficam em /orders.
 
 export default function DashboardPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [data, setData] = useState<MetricsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [marking, setMarking] = useState<string | null>(null);
-  const canMark = can("admins:manage");
-
-  function load() {
-    adminApi.listOrders().then(setOrders).catch((e) => setError(e.message));
-  }
 
   useEffect(() => {
-    load();
+    adminApi.metricsSummary().then(setData).catch((e) => setError(e.message));
   }, []);
 
-  async function markPaid(id: string) {
-    if (!confirm("Marcar pedido como pago? Use só se o pagamento foi confirmado externamente.")) return;
-    setMarking(id);
-    try {
-      await adminApi.markOrderPaid(id);
-      load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro");
-    } finally {
-      setMarking(null);
-    }
+  if (error) {
+    return (
+      <AdminShell>
+        <h1>Dashboard</h1>
+        <p style={{ color: "var(--danger)" }}>{error}</p>
+      </AdminShell>
+    );
   }
+  if (!data) {
+    return (
+      <AdminShell>
+        <h1>Dashboard</h1>
+        <p style={{ color: "var(--muted)" }}>Carregando…</p>
+      </AdminShell>
+    );
+  }
+
+  const maxOrders = Math.max(1, ...data.daily_30d.map((d) => d.orders));
 
   return (
     <AdminShell>
-      <h1 style={{ marginBottom: "1rem" }}>Pedidos</h1>
-      {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
-      <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Plano</th>
-              <th>Status</th>
-              <th>Exibido</th>
-              <th>Cobrança</th>
-              <th>Criado</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr key={o.id}>
-                <td style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{o.id.slice(0, 8)}…</td>
-                <td>{o.plan_name || o.plan_id.slice(0, 8)}</td>
-                <td>
-                  <span style={{ color: o.status === "paid" ? "var(--success)" : "var(--muted)", fontSize: "0.9rem" }}>
-                    {statusLabel[o.status] ?? o.status}
-                  </span>
-                </td>
-                <td>{o.display_amount} {o.display_currency}</td>
-                <td>
-                  {o.settlement_amount} {o.settlement_currency}
-                  {o.settlement_currency !== o.display_currency && (
-                    <span style={{ color: "var(--muted)" }}> *</span>
-                  )}
-                </td>
-                <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>{new Date(o.created_at).toLocaleString("pt-BR")}</td>
-                <td>
-                  {o.status === "pending" && canMark && (
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}
-                      onClick={() => markPaid(o.id)}
-                      disabled={marking === o.id}
-                    >
-                      {marking === o.id ? "…" : "Marcar pago"}
-                    </button>
-                  )}
-                </td>
+      <h1 style={{ marginBottom: "1.5rem" }}>Dashboard</h1>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+        <Tile label="Receita total (USD)" value={`$ ${data.revenue_usd}`} accent />
+        <Tile label="Pedidos totais" value={String(data.orders_total)} />
+        <Tile label="Pedidos pagos" value={String(data.orders_paid)} />
+        <Tile
+          label="Taxa de conversão"
+          value={
+            data.orders_total === 0
+              ? "—"
+              : `${((data.orders_paid / data.orders_total) * 100).toFixed(1)}%`
+          }
+        />
+      </div>
+
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Status atual</h2>
+        <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+          {Object.entries(data.status_count).map(([s, n]) => (
+            <div key={s}>
+              <div style={{ color: "var(--muted)", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                {s}
+              </div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700 }}>{n}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Top categorias por receita</h2>
+        {data.top_categories.length === 0 ? (
+          <p style={{ color: "var(--muted)" }}>Sem pedidos pagos ainda.</p>
+        ) : (
+          <table style={{ width: "100%" }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left" }}>Categoria</th>
+                <th style={{ textAlign: "right" }}>Pedidos</th>
+                <th style={{ textAlign: "right" }}>Receita (USD)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {orders.length === 0 && !error && (
-          <p style={{ color: "var(--muted)", padding: "1rem" }}>Nenhum pedido ainda.</p>
+            </thead>
+            <tbody>
+              {data.top_categories.map((c) => (
+                <tr key={c.category}>
+                  <td>{c.category}</td>
+                  <td style={{ textAlign: "right" }}>{c.orders}</td>
+                  <td style={{ textAlign: "right", fontWeight: 600 }}>$ {c.revenue_usd}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
+
+      <div className="card">
+        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Pedidos últimos 30 dias</h2>
+        {data.daily_30d.length === 0 ? (
+          <p style={{ color: "var(--muted)" }}>Sem dados.</p>
+        ) : (
+          <svg viewBox={`0 0 ${data.daily_30d.length * 18} 100`} style={{ width: "100%", height: 160 }}>
+            {data.daily_30d.map((d, i) => {
+              const h = (d.orders / maxOrders) * 90;
+              return (
+                <rect
+                  key={d.day}
+                  x={i * 18 + 2}
+                  y={100 - h}
+                  width={14}
+                  height={h}
+                  fill="var(--accent)"
+                  opacity={0.85}
+                >
+                  <title>{`${d.day}: ${d.orders} pedidos · $ ${d.revenue_usd}`}</title>
+                </rect>
+              );
+            })}
+          </svg>
+        )}
+        <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0 0" }}>
+          Passe o mouse em cada barra pra ver o dia/total.
+        </p>
+      </div>
+
+      <p style={{ marginTop: "2rem" }}>
+        <Link href="/orders" className="btn btn-primary">Ver lista completa de pedidos →</Link>
+      </p>
     </AdminShell>
+  );
+}
+
+function Tile({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="card" style={{ padding: "1.25rem" }}>
+      <div style={{ color: "var(--muted)", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: "0.3rem" }}>
+        {label}
+      </div>
+      <div style={{ fontSize: "1.8rem", fontWeight: 800, color: accent ? "var(--accent)" : "var(--text)" }}>
+        {value}
+      </div>
+    </div>
   );
 }

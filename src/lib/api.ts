@@ -64,6 +64,7 @@ export type Order = {
   user_id: string;
   plan_id: string;
   plan_name: string;
+  plan_category?: string;
   status: string;
   amount_cents: number;
   currency: string;
@@ -71,7 +72,24 @@ export type Order = {
   display_amount: string;
   settlement_currency: string;
   settlement_amount: string;
+  publication_url?: string | null;
+  profile_id?: string | null;
+  payment_method?: string;
+  ticket_id?: string | null;
+  custom_data?: Record<string, unknown>;
+  tracking?: Record<string, unknown>;
+  external_ref?: string | null;
   created_at: string;
+  updated_at?: string;
+};
+
+export type MetricsSummary = {
+  orders_total: number;
+  orders_paid: number;
+  revenue_usd: string;
+  status_count: Record<string, number>;
+  top_categories: { category: string; orders: number; revenue_usd: string }[];
+  daily_30d: { day: string; orders: number; revenue_usd: string }[];
 };
 
 export type LoginResult = {
@@ -88,10 +106,10 @@ export type Principal = {
   permissions: string[];
 };
 
-export async function login(email: string, password: string) {
+export async function login(email: string, password: string, turnstileToken?: string) {
   return request<LoginResult>("/v1/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, turnstile_token: turnstileToken ?? "" }),
   });
 }
 
@@ -121,6 +139,10 @@ export const adminApi = {
   ) => request<Currency>(`/v1/admin/currencies/${code}`, { method: "PUT", body: JSON.stringify(body) }),
 
   listOrders: () => request<Order[]>("/v1/admin/orders"),
+  getOrder: (id: string) => request<Order>(`/v1/admin/orders/${id}`),
+  patchOrder: (id: string, body: { status?: string }) =>
+    request<Order>(`/v1/admin/orders/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  metricsSummary: () => request<MetricsSummary>("/v1/admin/metrics/summary"),
 
   listTickets: (status?: string) =>
     request<TicketView[]>(`/v1/admin/tickets${status ? `?status=${status}` : ""}`),
