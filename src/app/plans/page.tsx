@@ -130,12 +130,13 @@ export default function PlansPage() {
             {currencies.map((c) => (
               <div key={c.code}>
                 <label className="label">{c.symbol} {c.code}</label>
-                <input className="input" name={`price_${c.code}`} placeholder={c.code === "BRL" ? "9.90" : ""} style={{ width: "8rem" }} />
+                <input className="input" name={`price_${c.code}`} placeholder={c.code === "USD" ? "2.50" : ""} style={{ width: "8rem" }} />
               </div>
             ))}
           </div>
           <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0" }}>
-            BRL é obrigatório (base). As demais moedas são opcionais (fallback para BRL).
+            USD é obrigatório (moeda base). As demais são opcionais (derivadas
+            via taxa de câmbio quando não preenchidas).
           </p>
           <label style={{ display: "block", margin: "0.5rem 0" }}>
             <input type="checkbox" name="active" defaultChecked /> Ativo

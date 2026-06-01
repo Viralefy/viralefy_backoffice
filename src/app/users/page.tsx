@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type UserView } from "@/lib/api";
 
-function brl(c: number) {
-  return `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
+// Saldo de créditos é canônico em USD; mostrar como "$ 12.50".
+function usd(c: number) {
+  return `$ ${(c / 100).toFixed(2)}`;
 }
 
 export default function UsersAdminPage() {
@@ -55,7 +56,7 @@ export default function UsersAdminPage() {
                 <td>{u.name || "—"}</td>
                 <td style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{u.email}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: u.balance_cents > 0 ? "var(--success)" : "var(--muted)" }}>
-                  {brl(u.balance_cents)}
+                  {usd(u.balance_cents)}
                 </td>
                 <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
                   {new Date(u.created_at).toLocaleDateString("pt-BR")}

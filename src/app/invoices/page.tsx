@@ -13,7 +13,7 @@ const STATUS: { value: string; label: string }[] = [
   { value: "cancelled", label: "Canceladas" },
 ];
 
-function brl(c: number) { return `R$ ${(c / 100).toFixed(2).replace(".", ",")}`; }
+function usd(c: number) { return `$ ${(c / 100).toFixed(2)}`; }
 
 export default function InvoicesPage() {
   const [list, setList] = useState<Invoice[]>([]);
@@ -80,8 +80,8 @@ export default function InvoicesPage() {
                 <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>#{inv.id.slice(0, 8)}</td>
                 <td style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>{inv.user_id.slice(0, 8)}…</td>
                 <td>
-                  {brl(inv.amount_cents)}
-                  {inv.display_currency !== "BRL" && (
+                  {usd(inv.amount_cents)}
+                  {inv.display_currency !== "USD" && (
                     <div style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
                       cobrança {inv.settlement_amount} {inv.settlement_currency}
                     </div>

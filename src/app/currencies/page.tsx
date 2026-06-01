@@ -40,7 +40,8 @@ export default function CurrenciesPage() {
     <AdminShell>
       <h1 style={{ marginBottom: "0.5rem" }}>Moedas e câmbio</h1>
       <p style={{ color: "var(--muted)", marginBottom: "1rem", fontSize: "0.9rem" }}>
-        <code>rate</code> = unidades da moeda por 1 BRL (base). A moeda de
+        <code>rate</code> = unidades da moeda por 1 USD (base canônica). Exemplos:
+        USDT/USD = 1, EUR ≈ 0.92, BRL ≈ 5.41, BTC ≈ 0.0000103. A moeda de
         liquidação define o que é efetivamente cobrado (ex.: USD exibe, USDT cobra).
       </p>
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
@@ -49,7 +50,7 @@ export default function CurrenciesPage() {
           <thead>
             <tr>
               <th>Moeda</th>
-              <th>Taxa (por 1 BRL)</th>
+              <th>Taxa (por 1 USD)</th>
               <th>Exibir na loja</th>
               <th>Liquidação</th>
               <th></th>

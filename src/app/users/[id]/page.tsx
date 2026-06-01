@@ -14,8 +14,9 @@ const TX_LABEL: Record<string, string> = {
   adjustment: "Ajuste",
 };
 
-function brl(c: number) {
-  return `R$ ${(c / 100).toFixed(2).replace(".", ",")}`;
+// Créditos são canonicamente USD-cents.
+function usd(c: number) {
+  return `$ ${(c / 100).toFixed(2)}`;
 }
 
 export default function UserDetailPage() {
@@ -85,7 +86,7 @@ export default function UserDetailPage() {
         </div>
         <div className="card" style={{ textAlign: "center" }}>
           <p style={{ color: "var(--muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "0.25rem" }}>Saldo</p>
-          <p className="plan-price" style={{ fontSize: "2rem", margin: 0 }}>{brl(data.credits?.balance_cents ?? 0)}</p>
+          <p className="plan-price" style={{ fontSize: "2rem", margin: 0 }}>{usd(data.credits?.balance_cents ?? 0)}</p>
         </div>
       </div>
 
@@ -161,10 +162,10 @@ export default function UserDetailPage() {
                     </div>
                   </td>
                   <td style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontWeight: 600, color: t.amount_cents > 0 ? "var(--success)" : "var(--danger)", fontVariantNumeric: "tabular-nums" }}>
-                    {t.amount_cents > 0 ? "+ " : "− "}{brl(Math.abs(t.amount_cents))}
+                    {t.amount_cents > 0 ? "+ " : "− "}{usd(Math.abs(t.amount_cents))}
                   </td>
                   <td style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontSize: "0.85rem", color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>
-                    {brl(t.balance_after_cents)}
+                    {usd(t.balance_after_cents)}
                   </td>
                 </tr>
               ))}
