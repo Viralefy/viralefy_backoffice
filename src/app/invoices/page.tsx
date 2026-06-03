@@ -7,11 +7,11 @@ import { adminApi, type Invoice } from "@/lib/api";
 import { can } from "@/lib/auth";
 
 const STATUS: { value: string; label: string }[] = [
-  { value: "", label: "Todos" },
-  { value: "pending", label: "Pendentes" },
-  { value: "paid", label: "Pagas" },
-  { value: "failed", label: "Falhadas" },
-  { value: "cancelled", label: "Canceladas" },
+  { value: "", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "paid", label: "Paid" },
+  { value: "failed", label: "Failed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 function usd(c: number) { return `$ ${(c / 100).toFixed(2)}`; }
@@ -32,13 +32,13 @@ export default function InvoicesPage() {
   }, [filter]);
 
   async function markPaid(id: string) {
-    if (!confirm("Marcar essa recarga como paga? Isso credita o saldo do usuário.")) return;
+    if (!confirm("Mark this top-up as paid? This will credit the customer's balance.")) return;
     setMarking(id);
     try {
       await adminApi.markInvoicePaid(id);
       reload(filter);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setMarking(null);
     }
@@ -46,7 +46,7 @@ export default function InvoicesPage() {
 
   return (
     <AdminShell>
-      <h1 style={{ marginBottom: "1rem" }}>Recargas de crédito</h1>
+      <h1 style={{ marginBottom: "1rem" }}>Credit top-ups</h1>
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
 
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
@@ -68,10 +68,10 @@ export default function InvoicesPage() {
           <thead>
             <tr style={{ background: "var(--accent-dim)", borderBottom: "1px solid var(--border)" }}>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>ID</th>
-              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Usuário</th>
-              <th style={{ padding: "0.65rem 1rem", textAlign: "right" }}>Valor</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>User</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "right" }}>Amount</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Status</th>
-              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Criada</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Created</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }} />
             </tr>
           </thead>
@@ -92,7 +92,7 @@ export default function InvoicesPage() {
                   {usd(inv.amount_cents)}
                   {inv.display_currency !== "USD" && (
                     <div style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
-                      cobrança {inv.settlement_amount} {inv.settlement_currency}
+                      charged {inv.settlement_amount} {inv.settlement_currency}
                     </div>
                   )}
                 </td>
@@ -102,7 +102,7 @@ export default function InvoicesPage() {
                   </span>
                 </td>
                 <td style={{ padding: "0.65rem 1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
-                  {new Date(inv.created_at).toLocaleString("pt-BR")}
+                  {new Date(inv.created_at).toLocaleString()}
                 </td>
                 <td style={{ padding: "0.65rem 1rem", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
                   <Link
@@ -110,7 +110,7 @@ export default function InvoicesPage() {
                     className="btn btn-outline"
                     style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}
                   >
-                    Abrir
+                    Open
                   </Link>
                   {inv.status === "pending" && canMarkPaid && (
                     <button
@@ -120,7 +120,7 @@ export default function InvoicesPage() {
                       onClick={() => markPaid(inv.id)}
                       disabled={marking === inv.id}
                     >
-                      {marking === inv.id ? "…" : "Pagar"}
+                      {marking === inv.id ? "…" : "Mark paid"}
                     </button>
                   )}
                 </td>
@@ -128,7 +128,7 @@ export default function InvoicesPage() {
             ))}
           </tbody>
         </table>
-        {list.length === 0 && <p style={{ color: "var(--muted)", padding: "1rem" }}>Nenhuma recarga.</p>}
+        {list.length === 0 && <p style={{ color: "var(--muted)", padding: "1rem" }}>No top-ups.</p>}
       </div>
     </AdminShell>
   );

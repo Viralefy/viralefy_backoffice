@@ -27,13 +27,13 @@ export default function UsersAdminPage() {
 
   return (
     <AdminShell>
-      <h1 style={{ marginBottom: "1rem" }}>Clientes</h1>
+      <h1 style={{ marginBottom: "1rem" }}>Customers</h1>
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
 
       <input
         type="search"
         className="input"
-        placeholder="Buscar por nome ou e-mail…"
+        placeholder="Search by name or email…"
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
         style={{ maxWidth: 360, marginBottom: "1rem" }}
@@ -43,10 +43,10 @@ export default function UsersAdminPage() {
         <table>
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th style={{ textAlign: "right" }}>Saldo</th>
-              <th>Desde</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th style={{ textAlign: "right" }}>Balance</th>
+              <th>Since</th>
               <th></th>
             </tr>
           </thead>
@@ -59,18 +59,18 @@ export default function UsersAdminPage() {
                   {usd(u.balance_cents)}
                 </td>
                 <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
-                  {new Date(u.created_at).toLocaleDateString("pt-BR")}
+                  {new Date(u.created_at).toLocaleDateString()}
                 </td>
                 <td>
                   <Link href={`/users/${u.id}`} className="btn btn-outline" style={{ padding: "0.35rem 0.7rem", fontSize: "0.85rem" }}>
-                    Detalhes
+                    Details
                   </Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {filtered.length === 0 && <p style={{ color: "var(--muted)", padding: "1rem" }}>Nenhum cliente.</p>}
+        {filtered.length === 0 && <p style={{ color: "var(--muted)", padding: "1rem" }}>No customers.</p>}
       </div>
     </AdminShell>
   );

@@ -29,7 +29,7 @@ export default function DashboardPage() {
     return (
       <AdminShell>
         <h1>Dashboard</h1>
-        <p style={{ color: "var(--muted)" }}>Carregando…</p>
+        <p style={{ color: "var(--muted)" }}>Loading…</p>
       </AdminShell>
     );
   }
@@ -41,11 +41,11 @@ export default function DashboardPage() {
       <h1 style={{ marginBottom: "1.5rem" }}>Dashboard</h1>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
-        <Tile label="Receita total (USD)" value={`$ ${data.revenue_usd}`} accent />
-        <Tile label="Pedidos totais" value={String(data.orders_total)} />
-        <Tile label="Pedidos pagos" value={String(data.orders_paid)} />
+        <Tile label="Total revenue (USD)" value={`$ ${data.revenue_usd}`} accent />
+        <Tile label="Total orders" value={String(data.orders_total)} />
+        <Tile label="Paid orders" value={String(data.orders_paid)} />
         <Tile
-          label="Taxa de conversão"
+          label="Conversion rate"
           value={
             data.orders_total === 0
               ? "—"
@@ -55,7 +55,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="card" style={{ marginBottom: "2rem" }}>
-        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Status atual</h2>
+        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Current status</h2>
         <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
           {Object.entries(data.status_count).map(([s, n]) => (
             <div key={s}>
@@ -69,16 +69,16 @@ export default function DashboardPage() {
       </div>
 
       <div className="card" style={{ marginBottom: "2rem" }}>
-        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Top categorias por receita</h2>
+        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Top categories by revenue</h2>
         {data.top_categories.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>Sem pedidos pagos ainda.</p>
+          <p style={{ color: "var(--muted)" }}>No paid orders yet.</p>
         ) : (
           <table style={{ width: "100%" }}>
             <thead>
               <tr>
-                <th style={{ textAlign: "left" }}>Categoria</th>
-                <th style={{ textAlign: "right" }}>Pedidos</th>
-                <th style={{ textAlign: "right" }}>Receita (USD)</th>
+                <th style={{ textAlign: "left" }}>Category</th>
+                <th style={{ textAlign: "right" }}>Orders</th>
+                <th style={{ textAlign: "right" }}>Revenue (USD)</th>
               </tr>
             </thead>
             <tbody>
@@ -95,9 +95,9 @@ export default function DashboardPage() {
       </div>
 
       <div className="card">
-        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Pedidos últimos 30 dias</h2>
+        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Orders — last 30 days</h2>
         {data.daily_30d.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>Sem dados.</p>
+          <p style={{ color: "var(--muted)" }}>No data.</p>
         ) : (
           <svg viewBox={`0 0 ${data.daily_30d.length * 18} 100`} style={{ width: "100%", height: 160 }}>
             {data.daily_30d.map((d, i) => {
@@ -112,19 +112,19 @@ export default function DashboardPage() {
                   fill="var(--accent)"
                   opacity={0.85}
                 >
-                  <title>{`${d.day}: ${d.orders} pedidos · $ ${d.revenue_usd}`}</title>
+                  <title>{`${d.day}: ${d.orders} orders · $ ${d.revenue_usd}`}</title>
                 </rect>
               );
             })}
           </svg>
         )}
         <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0 0" }}>
-          Passe o mouse em cada barra pra ver o dia/total.
+          Hover over each bar to see the day and total.
         </p>
       </div>
 
       <p style={{ marginTop: "2rem" }}>
-        <Link href="/orders" className="btn btn-primary">Ver lista completa de pedidos →</Link>
+        <Link href="/orders" className="btn btn-primary">View full order list →</Link>
       </p>
     </AdminShell>
   );

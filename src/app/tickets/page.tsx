@@ -6,11 +6,11 @@ import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type TicketView } from "@/lib/api";
 
 const STATUS: { value: string; label: string; color: string }[] = [
-  { value: "", label: "Todos", color: "#9ca3af" },
-  { value: "open", label: "Abertos", color: "#a855f7" },
-  { value: "pending", label: "Aguardando cliente", color: "#f59e0b" },
-  { value: "resolved", label: "Resolvidos", color: "#22c55e" },
-  { value: "closed", label: "Fechados", color: "#6b7280" },
+  { value: "", label: "All", color: "#9ca3af" },
+  { value: "open", label: "Open", color: "#a855f7" },
+  { value: "pending", label: "Awaiting customer", color: "#f59e0b" },
+  { value: "resolved", label: "Resolved", color: "#22c55e" },
+  { value: "closed", label: "Closed", color: "#6b7280" },
 ];
 
 const PRIORITY_COLOR: Record<string, string> = {
@@ -35,7 +35,7 @@ export default function TicketsAdminPage() {
 
   return (
     <AdminShell>
-      <h1 style={{ marginBottom: "1rem" }}>Tickets de suporte</h1>
+      <h1 style={{ marginBottom: "1rem" }}>Support tickets</h1>
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
 
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
@@ -56,12 +56,12 @@ export default function TicketsAdminPage() {
         <table>
           <thead>
             <tr>
-              <th>Assunto</th>
-              <th>Cliente</th>
+              <th>Subject</th>
+              <th>Customer</th>
               <th>Status</th>
-              <th>Prioridade</th>
-              <th>Mensagens</th>
-              <th>Última atividade</th>
+              <th>Priority</th>
+              <th>Messages</th>
+              <th>Last activity</th>
             </tr>
           </thead>
           <tbody>
@@ -87,8 +87,8 @@ export default function TicketsAdminPage() {
                   </td>
                   <td>{t.message_count}</td>
                   <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
-                    {new Date(t.last_message_at).toLocaleString("pt-BR")}
-                    {isPendingReply && <span style={{ color: "#f59e0b" }}> · aguardando você</span>}
+                    {new Date(t.last_message_at).toLocaleString()}
+                    {isPendingReply && <span style={{ color: "#f59e0b" }}> · awaiting you</span>}
                   </td>
                 </tr>
               );
@@ -96,7 +96,7 @@ export default function TicketsAdminPage() {
           </tbody>
         </table>
         {tickets.length === 0 && (
-          <p style={{ color: "var(--muted)", padding: "1rem" }}>Nenhum ticket nesse filtro.</p>
+          <p style={{ color: "var(--muted)", padding: "1rem" }}>No tickets in this filter.</p>
         )}
       </div>
     </AdminShell>

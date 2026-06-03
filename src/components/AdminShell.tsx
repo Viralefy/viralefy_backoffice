@@ -8,13 +8,13 @@ import { clearToken, getToken } from "@/lib/auth";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/orders", label: "Pedidos" },
-  { href: "/users", label: "Clientes" },
-  { href: "/plans", label: "Serviços" },
-  { href: "/currencies", label: "Moedas" },
+  { href: "/orders", label: "Orders" },
+  { href: "/users", label: "Customers" },
+  { href: "/plans", label: "Services" },
+  { href: "/currencies", label: "Currencies" },
   { href: "/gateways", label: "Gateways" },
-  { href: "/invoices", label: "Recargas" },
-  { href: "/tickets", label: "Suporte" },
+  { href: "/invoices", label: "Top-ups" },
+  { href: "/tickets", label: "Support" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -55,7 +55,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             router.push("/login");
           }}
         >
-          Sair
+          Sign out
         </button>
       </aside>
       <main className="main">{children}</main>

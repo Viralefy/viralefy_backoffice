@@ -23,7 +23,7 @@ export default function TicketAdminThread() {
       const d = await adminApi.getTicket(id);
       setDetail(d);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro");
+      setError(e instanceof Error ? e.message : "Error");
     }
   }
 
@@ -43,7 +43,7 @@ export default function TicketAdminThread() {
       (e.target as HTMLFormElement).reset();
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao responder");
+      setError(err instanceof Error ? err.message : "Reply error");
     } finally {
       setSending(false);
     }
@@ -63,7 +63,7 @@ export default function TicketAdminThread() {
     return (
       <AdminShell>
         <p><Link href="/tickets">← Tickets</Link></p>
-        {error ? <div className="alert alert-error">{error}</div> : <p style={{ color: "var(--muted)" }}>Carregando…</p>}
+        {error ? <div className="alert alert-error">{error}</div> : <p style={{ color: "var(--muted)" }}>Loading…</p>}
       </AdminShell>
     );
   }
@@ -79,8 +79,8 @@ export default function TicketAdminThread() {
       <div className="card" style={{ marginBottom: "1rem" }}>
         <h1 style={{ fontSize: "1.4rem", marginBottom: "0.5rem" }}>{detail.ticket.subject}</h1>
         <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
-          #{detail.ticket.id.slice(0, 8)} · aberto em {new Date(detail.ticket.created_at).toLocaleString("pt-BR")}
-          {v && <> · cliente: <strong style={{ color: "var(--text)" }}>{v.user_name || v.user_email}</strong> ({v.user_email})</>}
+          #{detail.ticket.id.slice(0, 8)} · opened on {new Date(detail.ticket.created_at).toLocaleString()}
+          {v && <> · customer: <strong style={{ color: "var(--text)" }}>{v.user_name || v.user_email}</strong> ({v.user_email})</>}
         </p>
         {writable && (
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -91,7 +91,7 @@ export default function TicketAdminThread() {
               </select>
             </div>
             <div>
-              <label className="label" style={{ marginBottom: 4 }}>Prioridade</label>
+              <label className="label" style={{ marginBottom: 4 }}>Priority</label>
               <select className="input" value={detail.ticket.priority} onChange={(e) => setPriority(e.target.value)} style={{ width: "auto" }}>
                 {PRIORITIES.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -114,9 +114,9 @@ export default function TicketAdminThread() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", color: "var(--muted)", fontSize: "0.8rem", marginBottom: "0.4rem" }}>
                 <strong style={{ color: isAdmin ? "var(--accent)" : "var(--text)" }}>
-                  {isAdmin ? `${m.author_name || "Suporte"} (suporte)` : "Cliente"}
+                  {isAdmin ? `${m.author_name || "Support"} (support)` : "Customer"}
                 </strong>
-                <span>{new Date(m.created_at).toLocaleString("pt-BR")}</span>
+                <span>{new Date(m.created_at).toLocaleString()}</span>
               </div>
               <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.55 }}>{m.body}</div>
             </div>
@@ -126,10 +126,10 @@ export default function TicketAdminThread() {
 
       {writable && detail.ticket.status !== "closed" && (
         <form onSubmit={onReply} className="card">
-          <label className="label" htmlFor="body">Responder ao cliente</label>
-          <textarea className="input" id="body" name="body" rows={5} required placeholder="Sua resposta — também vira e-mail." />
+          <label className="label" htmlFor="body">Reply to customer</label>
+          <textarea className="input" id="body" name="body" rows={5} required placeholder="Your reply — also goes by email." />
           <button type="submit" className="btn btn-primary" style={{ marginTop: "0.75rem" }} disabled={sending}>
-            {sending ? "Enviando…" : "Enviar resposta"}
+            {sending ? "Sending…" : "Send reply"}
           </button>
         </form>
       )}

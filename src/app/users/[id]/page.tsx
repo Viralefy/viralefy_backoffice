@@ -8,10 +8,10 @@ import { adminApi, type UserDetail } from "@/lib/api";
 import { can } from "@/lib/auth";
 
 const TX_LABEL: Record<string, string> = {
-  recharge: "Recarga",
-  spend: "Pedido",
-  refund: "Estorno",
-  adjustment: "Ajuste",
+  recharge: "Top-up",
+  spend: "Order",
+  refund: "Refund",
+  adjustment: "Adjustment",
 };
 
 // Créditos são canonicamente USD-cents.
@@ -31,7 +31,7 @@ export default function UserDetailPage() {
     try {
       setData(await adminApi.getUser(id));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro");
+      setError(e instanceof Error ? e.message : "Error");
     }
   }
 
@@ -49,15 +49,15 @@ export default function UserDetailPage() {
     const fd = new FormData(e.currentTarget);
     const usdDelta = parseFloat(String(fd.get("delta") ?? "0").replace(",", "."));
     if (!usdDelta || isNaN(usdDelta)) return;
-    const description = String(fd.get("description") ?? "Ajuste manual");
-    if (!confirm(`${usdDelta > 0 ? "Creditar" : "Debitar"} $ ${Math.abs(usdDelta).toFixed(2)} USD para ${data?.user.email}?`)) return;
+    const description = String(fd.get("description") ?? "Manual adjustment");
+    if (!confirm(`${usdDelta > 0 ? "Credit" : "Debit"} $ ${Math.abs(usdDelta).toFixed(2)} USD to ${data?.user.email}?`)) return;
     setAdjusting(true);
     try {
       await adminApi.adjustCredits(id, Math.round(usdDelta * 100), description);
       (e.target as HTMLFormElement).reset();
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro");
+      setError(err instanceof Error ? err.message : "Error");
     } finally {
       setAdjusting(false);
     }
@@ -66,8 +66,8 @@ export default function UserDetailPage() {
   if (!data) {
     return (
       <AdminShell>
-        <p><Link href="/users">← Clientes</Link></p>
-        {error ? <div className="alert alert-error">{error}</div> : <p style={{ color: "var(--muted)" }}>Carregando…</p>}
+        <p><Link href="/users">← Customers</Link></p>
+        {error ? <div className="alert alert-error">{error}</div> : <p style={{ color: "var(--muted)" }}>Loading…</p>}
       </AdminShell>
     );
   }
@@ -76,7 +76,7 @@ export default function UserDetailPage() {
   return (
     <AdminShell>
       <p style={{ marginBottom: "1rem", fontSize: "0.9rem" }}>
-        <Link href="/users">← Clientes</Link>
+        <Link href="/users">← Customers</Link>
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
@@ -85,45 +85,45 @@ export default function UserDetailPage() {
           <p style={{ color: "var(--muted)", fontSize: "0.9rem" }}>{u.email}</p>
           <p style={{ color: "var(--muted)", fontSize: "0.8rem", marginTop: "0.5rem", fontFamily: "monospace" }}>#{u.id}</p>
           <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-            Cliente desde {new Date(u.created_at).toLocaleDateString("pt-BR")}
+            Customer since {new Date(u.created_at).toLocaleDateString()}
           </p>
         </div>
         <div className="card" style={{ textAlign: "center" }}>
-          <p style={{ color: "var(--muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "0.25rem" }}>Saldo</p>
+          <p style={{ color: "var(--muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: ".5px", marginBottom: "0.25rem" }}>Balance</p>
           <p className="plan-price" style={{ fontSize: "2rem", margin: 0 }}>{usd(data.credits?.balance_cents ?? 0)}</p>
         </div>
       </div>
 
       {writable && (
         <form onSubmit={onAdjust} className="card" style={{ marginBottom: "1.5rem" }}>
-          <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Ajustar saldo</h2>
+          <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Adjust balance</h2>
           <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
-            Use valor negativo para debitar. Cada ajuste vira uma linha no ledger. Saldo é canonicamente USD-cents — entre o valor em <strong>USD</strong>.
+            Use a negative value to debit. Each adjustment is a row in the ledger. Balance is canonically USD-cents — enter the amount in <strong>USD</strong>.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: "0.5rem", alignItems: "end" }}>
             <div>
-              <label className="label" htmlFor="delta">Δ em USD ($)</label>
-              <input className="input" id="delta" name="delta" type="number" step="0.01" placeholder="Ex.: 50 ou -10" required />
+              <label className="label" htmlFor="delta">Δ in USD ($)</label>
+              <input className="input" id="delta" name="delta" type="number" step="0.01" placeholder="e.g. 50 or -10" required />
             </div>
             <div>
-              <label className="label" htmlFor="description">Descrição</label>
-              <input className="input" id="description" name="description" placeholder="Ex.: Bônus cortesia" required />
+              <label className="label" htmlFor="description">Description</label>
+              <input className="input" id="description" name="description" placeholder="e.g. Courtesy bonus" required />
             </div>
             <button type="submit" className="btn btn-primary" disabled={adjusting}>
-              {adjusting ? "…" : "Aplicar"}
+              {adjusting ? "…" : "Apply"}
             </button>
           </div>
         </form>
       )}
 
-      <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Perfis ({data.profiles.length})</h2>
+      <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Profiles ({data.profiles.length})</h2>
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         {data.profiles.length === 0 ? (
-          <p style={{ color: "var(--muted)" }}>Sem perfis.</p>
+          <p style={{ color: "var(--muted)" }}>No profiles.</p>
         ) : (
           <table>
             <thead>
-              <tr><th>Plataforma</th><th>Handle</th><th>Apelido</th><th>Cadastro</th></tr>
+              <tr><th>Platform</th><th>Handle</th><th>Nickname</th><th>Added</th></tr>
             </thead>
             <tbody>
               {data.profiles.map((p) => (
@@ -131,7 +131,7 @@ export default function UserDetailPage() {
                   <td>{p.platform === "tiktok" ? "🎵 TikTok" : "📷 Instagram"}</td>
                   <td>@{p.handle}{p.verified && <span style={{ color: "var(--success)", marginLeft: "0.4rem", fontSize: "0.8rem" }}>✓</span>}</td>
                   <td style={{ color: "var(--muted)" }}>{p.display_name || "—"}</td>
-                  <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>{new Date(p.created_at).toLocaleDateString("pt-BR")}</td>
+                  <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>{new Date(p.created_at).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -142,22 +142,22 @@ export default function UserDetailPage() {
       <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Ledger ({data.transactions.length})</h2>
       <div className="card" style={{ padding: 0 }}>
         {data.transactions.length === 0 ? (
-          <p style={{ color: "var(--muted)", padding: "1rem" }}>Sem transações.</p>
+          <p style={{ color: "var(--muted)", padding: "1rem" }}>No transactions.</p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "rgba(168,85,247,0.06)" }}>
-                <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontSize: "0.8rem", color: "var(--muted)" }}>Quando</th>
-                <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontSize: "0.8rem", color: "var(--muted)" }}>Tipo</th>
-                <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontSize: "0.8rem", color: "var(--muted)" }}>Descrição</th>
-                <th style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontSize: "0.8rem", color: "var(--muted)" }}>Valor</th>
-                <th style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontSize: "0.8rem", color: "var(--muted)" }}>Saldo</th>
+                <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontSize: "0.8rem", color: "var(--muted)" }}>When</th>
+                <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontSize: "0.8rem", color: "var(--muted)" }}>Type</th>
+                <th style={{ padding: "0.5rem 0.75rem", textAlign: "left", fontSize: "0.8rem", color: "var(--muted)" }}>Description</th>
+                <th style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontSize: "0.8rem", color: "var(--muted)" }}>Amount</th>
+                <th style={{ padding: "0.5rem 0.75rem", textAlign: "right", fontSize: "0.8rem", color: "var(--muted)" }}>Balance</th>
               </tr>
             </thead>
             <tbody>
               {data.transactions.map((t) => (
                 <tr key={t.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: "0.5rem 0.75rem", fontSize: "0.8rem", color: "var(--muted)" }}>{new Date(t.created_at).toLocaleString("pt-BR")}</td>
+                  <td style={{ padding: "0.5rem 0.75rem", fontSize: "0.8rem", color: "var(--muted)" }}>{new Date(t.created_at).toLocaleString()}</td>
                   <td style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem" }}>{TX_LABEL[t.type] ?? t.type}</td>
                   <td style={{ padding: "0.5rem 0.75rem", fontSize: "0.85rem" }}>
                     {t.description}

@@ -52,7 +52,7 @@ export default function OrderDetailPage() {
 
   async function saveStatus() {
     if (!data || statusDraft === data.order.status) return;
-    if (!confirm(`Mudar status de "${data.order.status}" para "${statusDraft}"? Essa ação não dispara email/webhook.`)) {
+    if (!confirm(`Change status from "${data.order.status}" to "${statusDraft}"? This does NOT fire email/webhook.`)) {
       return;
     }
     setSaving(true);
@@ -60,7 +60,7 @@ export default function OrderDetailPage() {
       await adminApi.patchOrder(data.order.id, { status: statusDraft });
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar");
+      setError(e instanceof Error ? e.message : "Save error");
     } finally {
       setSaving(false);
     }
@@ -70,7 +70,7 @@ export default function OrderDetailPage() {
     if (!data) return;
     if (
       !confirm(
-        "Marcar como pago via fluxo de pagamento? Vai disparar email de confirmação, abrir ticket (se categoria com handoff) e notificar admin via webhook.",
+        "Mark as paid through the payment flow? Will fire confirmation email, open ticket (if handoff category), and notify admin via webhook.",
       )
     ) {
       return;
@@ -80,7 +80,7 @@ export default function OrderDetailPage() {
       await adminApi.markOrderPaid(data.order.id);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setSaving(false);
     }
@@ -93,7 +93,7 @@ export default function OrderDetailPage() {
       await adminApi.captureOrderMetrics(data.order.id, kind);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha no scrape");
+      setError(e instanceof Error ? e.message : "Scrape failed");
     } finally {
       setCapturing(false);
     }
@@ -104,7 +104,7 @@ export default function OrderDetailPage() {
       <AdminShell>
         <p style={{ color: "var(--danger)" }}>{error}</p>
         <button type="button" className="btn btn-outline" onClick={() => router.push("/orders")}>
-          ← Voltar
+          ← Back
         </button>
       </AdminShell>
     );
@@ -112,7 +112,7 @@ export default function OrderDetailPage() {
   if (!data) {
     return (
       <AdminShell>
-        <p style={{ color: "var(--muted)" }}>Carregando…</p>
+        <p style={{ color: "var(--muted)" }}>Loading…</p>
       </AdminShell>
     );
   }
@@ -125,31 +125,31 @@ export default function OrderDetailPage() {
     <AdminShell>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", gap: "1rem", flexWrap: "wrap" }}>
         <div>
-          <Link href="/orders" style={{ fontSize: "0.85rem" }}>← Pedidos</Link>
+          <Link href="/orders" style={{ fontSize: "0.85rem" }}>← Orders</Link>
           <h1 style={{ margin: "0.25rem 0 0" }}>
             #{order.id.slice(0, 8)} <span style={{ color: "var(--muted)", fontSize: "1rem" }}>· {order.plan_name}</span>
           </h1>
         </div>
         {order.ticket_id && (
           <Link href={`/tickets/${order.ticket_id}`} className="btn btn-outline">
-            💬 Ticket relacionado
+            💬 Related ticket
           </Link>
         )}
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         {/* Dados do pedido + cliente e perfil hidratados */}
-        <Section title="Pedido">
+        <Section title="Order">
           <KV k="ID" v={order.id} mono />
-          <KV k="Plano" v={`${order.plan_name} (${order.plan_id.slice(0, 8)})`} />
-          <KV k="Categoria" v={order.plan_category ?? "—"} />
-          <KV k="Método" v={order.payment_method ?? "gateway"} />
+          <KV k="Plan" v={`${order.plan_name} (${order.plan_id.slice(0, 8)})`} />
+          <KV k="Category" v={order.plan_category ?? "—"} />
+          <KV k="Method" v={order.payment_method ?? "gateway"} />
           <KV k="External ref" v={order.external_ref ?? "—"} mono />
-          <KV k="Criado" v={new Date(order.created_at).toLocaleString("pt-BR")} />
-          {order.updated_at && <KV k="Atualizado" v={new Date(order.updated_at).toLocaleString("pt-BR")} />}
+          <KV k="Created" v={new Date(order.created_at).toLocaleString()} />
+          {order.updated_at && <KV k="Updated" v={new Date(order.updated_at).toLocaleString()} />}
         </Section>
 
-        <Section title="Cliente">
+        <Section title="Customer">
           {user ? (
             <>
               <div style={{ marginBottom: "0.5rem" }}>
@@ -157,7 +157,7 @@ export default function OrderDetailPage() {
                   {user.name}
                 </Link>
               </div>
-              <KV k="E-mail" v={user.email} />
+              <KV k="Email" v={user.email} />
               <KV k="ID" v={user.id} mono />
             </>
           ) : (
@@ -165,7 +165,7 @@ export default function OrderDetailPage() {
           )}
         </Section>
 
-        <Section title="Alvo">
+        <Section title="Target">
           {profile ? (
             <>
               <div style={{ marginBottom: "0.5rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -180,13 +180,13 @@ export default function OrderDetailPage() {
                 <span style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
                   {profile.platform === "tiktok" ? "🎵" : "📷"} {profile.platform}
                 </span>
-                {profile.verified && <span title="Verificado" style={{ color: "var(--accent)" }}>✓</span>}
+                {profile.verified && <span title="Verified" style={{ color: "var(--accent)" }}>✓</span>}
               </div>
-              {profile.display_name && <KV k="Nome" v={profile.display_name} />}
+              {profile.display_name && <KV k="Name" v={profile.display_name} />}
               <KV k="Profile ID" v={profile.id} mono />
               {user && (
                 <Link href={`/users/${user.id}`} style={{ fontSize: "0.85rem", textDecoration: "underline" }}>
-                  Ver outros perfis do cliente →
+                  See customer&apos;s other profiles →
                 </Link>
               )}
             </>
@@ -200,18 +200,18 @@ export default function OrderDetailPage() {
               >
                 {order.publication_url}
               </a>
-              <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0 0" }}>Publicação alvo</p>
+              <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0 0" }}>Target post</p>
             </>
           ) : (
-            <p style={{ color: "var(--muted)" }}>Sem alvo</p>
+            <p style={{ color: "var(--muted)" }}>No target</p>
           )}
         </Section>
 
-        <Section title="Valores">
+        <Section title="Amounts">
           <KV k="Display" v={`${order.display_amount} ${order.display_currency}`} />
-          <KV k="Cobrança" v={`${order.settlement_amount} ${order.settlement_currency}`} />
-          <KV k="Cents (base USD)" v={String(order.amount_cents)} />
-          <KV k="Moeda canônica" v={order.currency} />
+          <KV k="Charge" v={`${order.settlement_amount} ${order.settlement_currency}`} />
+          <KV k="Cents (USD base)" v={String(order.amount_cents)} />
+          <KV k="Canonical currency" v={order.currency} />
         </Section>
 
         <Section title="Status">
@@ -229,7 +229,7 @@ export default function OrderDetailPage() {
             </select>
             {canEdit && statusDraft !== order.status && (
               <button type="button" className="btn btn-primary" onClick={saveStatus} disabled={saving}>
-                {saving ? "Salvando…" : "Salvar"}
+                {saving ? "Saving…" : "Save"}
               </button>
             )}
           </div>
@@ -241,7 +241,7 @@ export default function OrderDetailPage() {
               disabled={saving}
               style={{ width: "100%" }}
             >
-              ✓ Marcar como pago (com hooks)
+              ✓ Mark as paid (with hooks)
             </button>
           )}
         </Section>
@@ -258,7 +258,7 @@ export default function OrderDetailPage() {
       {/* Custom data — schema livre da categoria (recovery/BMs/perfis) */}
       {order.custom_data && Object.keys(order.custom_data).length > 0 && (
         <div className="card" style={{ marginBottom: "1.5rem" }}>
-          <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Form da categoria</h2>
+          <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Category form</h2>
           <pre style={{ background: "var(--accent-dim)", padding: "0.75rem", borderRadius: "0.5rem", overflowX: "auto" }}>
             {JSON.stringify(order.custom_data, null, 2)}
           </pre>
@@ -268,7 +268,7 @@ export default function OrderDetailPage() {
       {/* Tracking — UTM, fbclid, etc. */}
       {order.tracking && Object.keys(order.tracking).length > 0 && (
         <div className="card">
-          <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Tracking & origem</h2>
+          <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Tracking & origin</h2>
           <pre style={{ background: "var(--accent-dim)", padding: "0.75rem", borderRadius: "0.5rem", overflowX: "auto" }}>
             {JSON.stringify(order.tracking, null, 2)}
           </pre>
@@ -296,10 +296,10 @@ function BaselineDeliveryCard({
     <div className="card" style={{ marginBottom: "1.5rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", flexWrap: "wrap" }}>
         <div>
-          <h2 style={{ marginTop: 0, marginBottom: "0.25rem", fontSize: "1.05rem" }}>Métricas do alvo (2ª fonte)</h2>
+          <h2 style={{ marginTop: 0, marginBottom: "0.25rem", fontSize: "1.05rem" }}>Target metrics (2nd source)</h2>
           <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-            Snapshot público do perfil/post pra confirmar que o gateway entregou.
-            Compare <code>delivery − baseline</code> com a quantidade do plano.
+            Public snapshot of the profile/post to verify the gateway delivered.
+            Compare <code>delivery − baseline</code> against the plan&apos;s quantity.
           </p>
         </div>
         {canEdit && (
@@ -311,7 +311,7 @@ function BaselineDeliveryCard({
               disabled={capturing}
               style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
             >
-              {capturing ? "Capturando…" : hasBaseline ? "↻ Re-capturar baseline" : "📸 Capturar baseline agora"}
+              {capturing ? "Capturing…" : hasBaseline ? "↻ Re-capture baseline" : "📸 Capture baseline now"}
             </button>
             <button
               type="button"
@@ -320,7 +320,7 @@ function BaselineDeliveryCard({
               disabled={capturing}
               style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
             >
-              {capturing ? "Capturando…" : hasDelivery ? "↻ Re-capturar delivery" : "📸 Capturar delivery agora"}
+              {capturing ? "Capturing…" : hasDelivery ? "↻ Re-capture delivery" : "📸 Capture delivery now"}
             </button>
           </div>
         )}
@@ -328,13 +328,13 @@ function BaselineDeliveryCard({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginTop: "1rem" }}>
         <MetricColumn
-          label="Baseline (pré-entrega)"
+          label="Baseline (pre-delivery)"
           metrics={order.baseline_metrics}
           capturedAt={order.baseline_captured_at}
           source={order.baseline_source}
         />
         <MetricColumn
-          label="Delivery (pós-entrega)"
+          label="Delivery (post-delivery)"
           metrics={order.delivery_metrics}
           capturedAt={order.delivery_captured_at}
           source={order.delivery_source}
@@ -379,11 +379,11 @@ function MetricColumn({
           {JSON.stringify(metrics, null, 2)}
         </pre>
       ) : (
-        <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>Ainda não capturado.</p>
+        <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>Not captured yet.</p>
       )}
       {capturedAt && (
         <p style={{ color: "var(--muted)", fontSize: "0.75rem", margin: "0.5rem 0 0" }}>
-          @ {new Date(capturedAt).toLocaleString("pt-BR")}
+          @ {new Date(capturedAt).toLocaleString()}
         </p>
       )}
     </div>

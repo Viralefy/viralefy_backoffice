@@ -55,7 +55,7 @@ export default function PlansPage() {
       setShowForm(false);
       reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao criar plano");
+      setError(e instanceof Error ? e.message : "Failed to create plan");
     }
   }
 
@@ -65,7 +65,7 @@ export default function PlansPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Excluir plano?")) return;
+    if (!confirm("Delete plan?")) return;
     await adminApi.deletePlan(id);
     reload();
   }
@@ -73,16 +73,16 @@ export default function PlansPage() {
   return (
     <AdminShell>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
-        <h1>Serviços / Planos</h1>
+        <h1>Services / Plans</h1>
         {writable && (
           <button type="button" className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Cancelar" : "Novo plano"}
+            {showForm ? "Cancel" : "New plan"}
           </button>
         )}
       </div>
       {!writable && (
         <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginBottom: "1rem" }}>
-          Seu papel é somente leitura para planos.
+          Your role is read-only for plans.
         </p>
       )}
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
@@ -91,11 +91,11 @@ export default function PlansPage() {
         <form className="card" onSubmit={handleCreate} style={{ marginBottom: "1rem" }}>
           <div className="form-row">
             <div>
-              <label className="label">Nome</label>
+              <label className="label">Name</label>
               <input className="input" name="name" required />
             </div>
             <div>
-              <label className="label">Categoria</label>
+              <label className="label">Category</label>
               <select className="input" name="category" defaultValue="seguidores_instagram">
                 {categories.map((c) => (
                   <option key={c.code} value={c.code}>{c.label}</option>
@@ -103,11 +103,11 @@ export default function PlansPage() {
               </select>
             </div>
           </div>
-          <label className="label">Descrição</label>
+          <label className="label">Description</label>
           <input className="input" name="description" />
           <div className="form-row">
             <div>
-              <label className="label">Plataforma</label>
+              <label className="label">Platform</label>
               <select className="input" name="platform" defaultValue="instagram">
                 <option value="instagram">Instagram</option>
                 <option value="tiktok">TikTok</option>
@@ -115,22 +115,22 @@ export default function PlansPage() {
               </select>
             </div>
             <div>
-              <label className="label">Tipo de alvo</label>
+              <label className="label">Target type</label>
               <select className="input" name="target_type" defaultValue="profile">
-                <option value="profile">Perfil</option>
-                <option value="publication">Publicação</option>
+                <option value="profile">Profile</option>
+                <option value="publication">Publication</option>
               </select>
             </div>
             <div>
-              <label className="label">Quantidade</label>
+              <label className="label">Quantity</label>
               <input className="input" name="followers_qty" type="number" defaultValue={1} required />
             </div>
             <div>
-              <label className="label">Ordem</label>
+              <label className="label">Order</label>
               <input className="input" name="sort_order" type="number" defaultValue={0} />
             </div>
           </div>
-          <label className="label">Preço por moeda (manual)</label>
+          <label className="label">Price per currency (manual)</label>
           <div className="form-row" style={{ flexWrap: "wrap" }}>
             {currencies.map((c) => (
               <div key={c.code}>
@@ -140,13 +140,12 @@ export default function PlansPage() {
             ))}
           </div>
           <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0" }}>
-            USD é obrigatório (moeda base). As demais são opcionais (derivadas
-            via taxa de câmbio quando não preenchidas).
+            USD is required (canonical base). Others are optional — when blank, derived from the exchange rate.
           </p>
           <label style={{ display: "block", margin: "0.5rem 0" }}>
-            <input type="checkbox" name="active" defaultChecked /> Ativo
+            <input type="checkbox" name="active" defaultChecked /> Active
           </label>
-          <button type="submit" className="btn btn-primary">Salvar</button>
+          <button type="submit" className="btn btn-primary">Save</button>
         </form>
       )}
 
@@ -154,12 +153,12 @@ export default function PlansPage() {
         <table>
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>Categoria</th>
-              <th>Qtd</th>
-              <th>Preço (USD)</th>
-              <th>Moedas</th>
-              <th>Ativo</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Qty</th>
+              <th>Price (USD)</th>
+              <th>Currencies</th>
+              <th>Active</th>
               <th></th>
             </tr>
           </thead>
@@ -168,15 +167,15 @@ export default function PlansPage() {
               <tr key={p.id}>
                 <td>{p.name}</td>
                 <td>{labelFor(p.category)}</td>
-                <td>{p.followers_qty.toLocaleString("pt-BR")}</td>
+                <td>{p.followers_qty.toLocaleString()}</td>
                 <td>$ {(p.price_cents / 100).toFixed(2)}</td>
                 <td>{Object.keys(p.prices ?? {}).length}</td>
-                <td>{p.active ? "Sim" : "Não"}</td>
+                <td>{p.active ? "Yes" : "No"}</td>
                 <td>
                   {writable ? (
                     <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
                       <Link href={`/plans/${p.id}/edit`} className="btn btn-primary" style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}>
-                        Editar
+                        Edit
                       </Link>
                       <button
                         type="button"
@@ -184,7 +183,7 @@ export default function PlansPage() {
                         style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}
                         onClick={() => toggleActive(p)}
                       >
-                        {p.active ? "Desativar" : "Ativar"}
+                        {p.active ? "Deactivate" : "Activate"}
                       </button>
                       <button
                         type="button"
@@ -192,7 +191,7 @@ export default function PlansPage() {
                         style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}
                         onClick={() => remove(p.id)}
                       >
-                        Excluir
+                        Delete
                       </button>
                     </div>
                   ) : (

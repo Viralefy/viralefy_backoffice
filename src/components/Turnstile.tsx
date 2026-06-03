@@ -104,7 +104,7 @@ export function Turnstile({
       <div ref={ref} />
       {error && (
         <p style={{ color: "var(--danger)", fontSize: "0.85rem", margin: "0.5rem 0 0" }}>
-          Verificação anti-bot falhou. Recarregue e tente de novo.
+          Anti-bot verification failed. Reload and try again.
         </p>
       )}
     </div>

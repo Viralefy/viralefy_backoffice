@@ -42,13 +42,13 @@ export default function InvoiceDetailPage() {
 
   async function markPaid() {
     if (!data) return;
-    if (!confirm("Marcar essa recarga como paga? Vai creditar o saldo do usuário.")) return;
+    if (!confirm("Mark this top-up as paid? This will credit the customer's balance.")) return;
     setMarking(true);
     try {
       await adminApi.markInvoicePaid(data.invoice.id);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro");
+      setError(e instanceof Error ? e.message : "Error");
     } finally {
       setMarking(false);
     }
@@ -59,7 +59,7 @@ export default function InvoiceDetailPage() {
       <AdminShell>
         <p style={{ color: "var(--danger)" }}>{error}</p>
         <button type="button" className="btn btn-outline" onClick={() => router.push("/invoices")}>
-          ← Voltar
+          ← Back
         </button>
       </AdminShell>
     );
@@ -67,7 +67,7 @@ export default function InvoiceDetailPage() {
   if (!data) {
     return (
       <AdminShell>
-        <p style={{ color: "var(--muted)" }}>Carregando…</p>
+        <p style={{ color: "var(--muted)" }}>Loading…</p>
       </AdminShell>
     );
   }
@@ -78,9 +78,9 @@ export default function InvoiceDetailPage() {
   return (
     <AdminShell>
       <div style={{ marginBottom: "1rem" }}>
-        <Link href="/invoices" style={{ fontSize: "0.85rem" }}>← Recargas</Link>
+        <Link href="/invoices" style={{ fontSize: "0.85rem" }}>← Top-ups</Link>
         <h1 style={{ margin: "0.25rem 0 0" }}>
-          Recarga #{inv.id.slice(0, 8)}{" "}
+          Top-up #{inv.id.slice(0, 8)}{" "}
           <span style={{ color: statusColor[inv.status] ?? "var(--muted)", fontSize: "1rem", fontWeight: 700 }}>
             · {inv.status}
           </span>
@@ -88,13 +88,13 @@ export default function InvoiceDetailPage() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
-        <Section title="Cliente">
+        <Section title="Customer">
           {user ? (
             <>
               <Link href={`/users/${user.id}`} style={{ fontWeight: 600, fontSize: "1rem" }}>
                 {user.name}
               </Link>
-              <KV k="E-mail" v={user.email} />
+              <KV k="Email" v={user.email} />
               <KV k="ID" v={user.id} mono />
             </>
           ) : (
@@ -102,11 +102,11 @@ export default function InvoiceDetailPage() {
           )}
         </Section>
 
-        <Section title="Valor">
+        <Section title="Amount">
           <KV k="Display" v={`${inv.display_amount} ${inv.display_currency}`} />
-          <KV k="Cobrança" v={`${inv.settlement_amount} ${inv.settlement_currency}`} />
-          <KV k="Cents (base USD)" v={usd(inv.amount_cents)} />
-          <KV k="Moeda canônica" v={inv.currency} />
+          <KV k="Charge" v={`${inv.settlement_amount} ${inv.settlement_currency}`} />
+          <KV k="Cents (USD base)" v={usd(inv.amount_cents)} />
+          <KV k="Canonical currency" v={inv.currency} />
         </Section>
 
         <Section title="Status & gateway">
@@ -115,33 +115,33 @@ export default function InvoiceDetailPage() {
           <KV k="External ref" v={inv.external_ref ?? "—"} mono />
           {inv.payment_url && (
             <KV
-              k="Link de pagamento"
+              k="Payment link"
               v={inv.payment_url}
             />
           )}
         </Section>
 
-        <Section title="Datas">
-          <KV k="Criada" v={new Date(inv.created_at).toLocaleString("pt-BR")} />
-          <KV k="Atualizada" v={new Date(inv.updated_at).toLocaleString("pt-BR")} />
-          {inv.paid_at && <KV k="Paga" v={new Date(inv.paid_at).toLocaleString("pt-BR")} />}
+        <Section title="Dates">
+          <KV k="Created" v={new Date(inv.created_at).toLocaleString()} />
+          <KV k="Updated" v={new Date(inv.updated_at).toLocaleString()} />
+          {inv.paid_at && <KV k="Paid" v={new Date(inv.paid_at).toLocaleString()} />}
         </Section>
       </div>
 
       {/* Ações */}
       {canMarkPaid && inv.status === "pending" && (
         <div className="card" style={{ marginBottom: "1.5rem" }}>
-          <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Ações</h2>
+          <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Actions</h2>
           <button
             type="button"
             className="btn btn-primary"
             onClick={markPaid}
             disabled={marking}
           >
-            {marking ? "Marcando…" : "✓ Marcar como paga (credita saldo)"}
+            {marking ? "Marking…" : "✓ Mark as paid (credit balance)"}
           </button>
           <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0 0" }}>
-            Vai disparar credit_transactions(type=recharge) e atualizar credit_accounts.balance do usuário.
+            Will insert credit_transactions(type=recharge) and update the user&apos;s credit_accounts.balance.
           </p>
         </div>
       )}
@@ -149,7 +149,7 @@ export default function InvoiceDetailPage() {
       {/* Payment extra (do gateway) */}
       {inv.payment_extra && Object.keys(inv.payment_extra).length > 0 && (
         <div className="card">
-          <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Extras do gateway</h2>
+          <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Gateway extras</h2>
           <pre style={{ background: "var(--accent-dim)", padding: "0.75rem", borderRadius: "0.5rem", overflowX: "auto" }}>
             {JSON.stringify(inv.payment_extra, null, 2)}
           </pre>

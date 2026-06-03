@@ -30,7 +30,7 @@ export default function CurrenciesPage() {
       });
       reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao salvar");
+      setError(err instanceof Error ? err.message : "Save error");
     } finally {
       setSavingCode(null);
     }
@@ -38,21 +38,21 @@ export default function CurrenciesPage() {
 
   return (
     <AdminShell>
-      <h1 style={{ marginBottom: "0.5rem" }}>Moedas e câmbio</h1>
+      <h1 style={{ marginBottom: "0.5rem" }}>Currencies & exchange</h1>
       <p style={{ color: "var(--muted)", marginBottom: "1rem", fontSize: "0.9rem" }}>
-        <code>rate</code> = unidades da moeda por 1 USD (base canônica). Exemplos:
-        USDT/USD = 1, EUR ≈ 0.92, BRL ≈ 5.41, BTC ≈ 0.0000103. A moeda de
-        liquidação define o que é efetivamente cobrado (ex.: USD exibe, USDT cobra).
+        <code>rate</code> = units of the currency per 1 USD (canonical base). Examples:
+        USDT/USD = 1, EUR ≈ 0.92, BRL ≈ 5.41, BTC ≈ 0.0000103. The settlement
+        currency defines what&apos;s actually charged (e.g. USD displays, USDT settles).
       </p>
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
       <div className="card">
         <table>
           <thead>
             <tr>
-              <th>Moeda</th>
-              <th>Taxa (por 1 USD)</th>
-              <th>Exibir na loja</th>
-              <th>Liquidação</th>
+              <th>Currency</th>
+              <th>Rate (per 1 USD)</th>
+              <th>Show in storefront</th>
+              <th>Settlement</th>
               <th></th>
             </tr>
           </thead>
@@ -75,7 +75,7 @@ export default function CurrenciesPage() {
                       required
                     />
                     <label style={{ whiteSpace: "nowrap" }}>
-                      <input type="checkbox" name="display_enabled" defaultChecked={c.display_enabled} /> exibir
+                      <input type="checkbox" name="display_enabled" defaultChecked={c.display_enabled} /> show
                     </label>
                     <select className="input" name="settlement_code" defaultValue={c.settlement_code} style={{ width: "auto" }}>
                       {currencies.map((s) => (
@@ -83,7 +83,7 @@ export default function CurrenciesPage() {
                       ))}
                     </select>
                     <button type="submit" className="btn btn-primary" disabled={savingCode === c.code}>
-                      {savingCode === c.code ? "Salvando…" : "Salvar"}
+                      {savingCode === c.code ? "Saving…" : "Save"}
                     </button>
                   </form>
                 </td>

@@ -7,7 +7,7 @@ import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type Category, type Currency, type Plan } from "@/lib/api";
 import { can } from "@/lib/auth";
 
-// Editor completo de plano. Vem do botão "Editar" da listagem (/plans).
+// Editor completo de plano. Vem do botão "Edit" da listagem (/plans).
 // Diferente do form de criação inline, permite editar TUDO:
 //   nome, descrição, categoria, plataforma, target_type, qty, sort_order,
 //   preços por moeda, ativo.
@@ -30,7 +30,7 @@ export default function PlanEditPage() {
     adminApi.listPlans().then((all) => {
       const found = all.find((p) => p.id === id);
       if (!found) {
-        setError("Plano não encontrado.");
+        setError("Plan not found.");
         return;
       }
       setPlan(found);
@@ -75,7 +75,7 @@ export default function PlanEditPage() {
       });
       router.push("/plans");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar");
+      setError(e instanceof Error ? e.message : "Save error");
     } finally {
       setSaving(false);
     }
@@ -84,8 +84,8 @@ export default function PlanEditPage() {
   if (!writable) {
     return (
       <AdminShell>
-        <p style={{ color: "var(--muted)" }}>Seu papel é somente leitura para planos.</p>
-        <Link href="/plans" className="btn btn-outline">← Voltar</Link>
+        <p style={{ color: "var(--muted)" }}>Your role is read-only for plans.</p>
+        <Link href="/plans" className="btn btn-outline">← Back</Link>
       </AdminShell>
     );
   }
@@ -94,14 +94,14 @@ export default function PlanEditPage() {
     return (
       <AdminShell>
         <p style={{ color: "var(--danger)" }}>{error}</p>
-        <Link href="/plans" className="btn btn-outline">← Voltar</Link>
+        <Link href="/plans" className="btn btn-outline">← Back</Link>
       </AdminShell>
     );
   }
   if (!plan) {
     return (
       <AdminShell>
-        <p style={{ color: "var(--muted)" }}>Carregando…</p>
+        <p style={{ color: "var(--muted)" }}>Loading…</p>
       </AdminShell>
     );
   }
@@ -109,18 +109,18 @@ export default function PlanEditPage() {
   return (
     <AdminShell>
       <div style={{ marginBottom: "1rem" }}>
-        <Link href="/plans" style={{ fontSize: "0.85rem" }}>← Planos</Link>
-        <h1 style={{ margin: "0.25rem 0 0" }}>Editar “{plan.name}”</h1>
+        <Link href="/plans" style={{ fontSize: "0.85rem" }}>← Plans</Link>
+        <h1 style={{ margin: "0.25rem 0 0" }}>Edit “{plan.name}”</h1>
       </div>
 
       <form className="card" onSubmit={save} style={{ marginBottom: "1.5rem" }}>
         <div className="form-row">
           <div style={{ flex: 1 }}>
-            <label className="label">Nome</label>
+            <label className="label">Name</label>
             <input className="input" name="name" defaultValue={plan.name} required />
           </div>
           <div>
-            <label className="label">Categoria</label>
+            <label className="label">Category</label>
             <select className="input" name="category" defaultValue={plan.category}>
               {categories.map((c) => (
                 <option key={c.code} value={c.code}>{c.label}</option>
@@ -129,12 +129,12 @@ export default function PlanEditPage() {
           </div>
         </div>
 
-        <label className="label">Descrição</label>
+        <label className="label">Description</label>
         <input className="input" name="description" defaultValue={plan.description} />
 
         <div className="form-row" style={{ flexWrap: "wrap" }}>
           <div>
-            <label className="label">Plataforma</label>
+            <label className="label">Platform</label>
             <select className="input" name="platform" defaultValue={plan.platform ?? "instagram"}>
               <option value="instagram">Instagram</option>
               <option value="tiktok">TikTok</option>
@@ -142,23 +142,23 @@ export default function PlanEditPage() {
             </select>
           </div>
           <div>
-            <label className="label">Tipo de alvo</label>
+            <label className="label">Target type</label>
             <select className="input" name="target_type" defaultValue={plan.target_type ?? "profile"}>
-              <option value="profile">Perfil</option>
-              <option value="publication">Publicação</option>
+              <option value="profile">Profile</option>
+              <option value="publication">Publication</option>
             </select>
           </div>
           <div>
-            <label className="label">Quantidade</label>
+            <label className="label">Quantity</label>
             <input className="input" name="followers_qty" type="number" defaultValue={plan.followers_qty} required />
           </div>
           <div>
-            <label className="label">Ordem</label>
+            <label className="label">Order</label>
             <input className="input" name="sort_order" type="number" defaultValue={plan.sort_order} />
           </div>
         </div>
 
-        <h3 style={{ marginTop: "1rem", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Preços por moeda</h3>
+        <h3 style={{ marginTop: "1rem", marginBottom: "0.5rem", fontSize: "0.95rem" }}>Prices per currency</h3>
         <div className="form-row" style={{ flexWrap: "wrap" }}>
           {currencies.map((c) => (
             <div key={c.code}>
@@ -174,27 +174,27 @@ export default function PlanEditPage() {
           ))}
         </div>
         <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0.5rem 0" }}>
-          USD é obrigatório (moeda base). As demais são opcionais (derivadas via taxa de câmbio quando vazias).
+          USD is required (canonical base). Others are optional — when blank, derived from the exchange rate.
         </p>
 
         <label style={{ display: "block", margin: "0.75rem 0" }}>
-          <input type="checkbox" name="active" defaultChecked={plan.active} /> Ativo
+          <input type="checkbox" name="active" defaultChecked={plan.active} /> Active
         </label>
 
         <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
           <button type="submit" className="btn btn-primary" disabled={saving}>
-            {saving ? "Salvando…" : "Salvar alterações"}
+            {saving ? "Saving…" : "Save changes"}
           </button>
-          <Link href="/plans" className="btn btn-ghost">Cancelar</Link>
+          <Link href="/plans" className="btn btn-ghost">Cancel</Link>
         </div>
       </form>
 
       {/* Metadados read-only */}
       <div className="card" style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
-        <h2 style={{ marginTop: 0, fontSize: "1rem", color: "var(--text)" }}>Metadados</h2>
+        <h2 style={{ marginTop: 0, fontSize: "1rem", color: "var(--text)" }}>Metadata</h2>
         <div>ID: <code>{plan.id}</code></div>
-        <div>Preço base (cents USD): {plan.price_cents}</div>
-        <div>Moeda canônica: {plan.currency}</div>
+        <div>Base price (USD cents): {plan.price_cents}</div>
+        <div>Canonical currency: {plan.currency}</div>
       </div>
     </AdminShell>
   );

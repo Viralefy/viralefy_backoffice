@@ -9,5 +9,5 @@ export default function Home() {
   useEffect(() => {
     router.replace(getToken() ? "/dashboard" : "/login");
   }, [router]);
-  return <p style={{ padding: "2rem" }}>Redirecionando…</p>;
+  return <p style={{ padding: "2rem" }}>Redirecting…</p>;
 }

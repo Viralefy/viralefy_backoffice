@@ -13,9 +13,9 @@ const PROVIDER_TEMPLATES: Record<string, Record<string, string>> = {
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
-  manual_pix: "PIX Manual (sem integração)",
-  woovi: "Woovi — PIX",
-  heleket: "Heleket — cripto (USDT/BTC)",
+  manual_pix: "Manual Pix (no integration)",
+  woovi: "Woovi — Pix",
+  heleket: "Heleket — crypto (USDT/BTC)",
 };
 
 export default function GatewaysPage() {
@@ -52,7 +52,7 @@ export default function GatewaysPage() {
     const fd = new FormData(e.currentTarget);
     const config = parseConfig(String(fd.get("config") ?? "{}"));
     if (!config) {
-      setError("Config inválida (precisa ser JSON tipo {\"chave\":\"valor\"}).");
+      setError("Invalid config (must be JSON like {\"key\":\"value\"}).");
       return;
     }
     try {
@@ -65,7 +65,7 @@ export default function GatewaysPage() {
       setShowForm(false);
       reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao criar gateway");
+      setError(e instanceof Error ? e.message : "Failed to create gateway");
     }
   }
 
@@ -75,7 +75,7 @@ export default function GatewaysPage() {
     const fd = new FormData(e.currentTarget);
     const config = parseConfig(String(fd.get("config") ?? "{}"));
     if (!config) {
-      setError("Config inválida (precisa ser JSON).");
+      setError("Invalid config (must be JSON).");
       return;
     }
     try {
@@ -87,7 +87,7 @@ export default function GatewaysPage() {
       setEditing(null);
       reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar gateway");
+      setError(e instanceof Error ? e.message : "Failed to save gateway");
     }
   }
 
@@ -97,7 +97,7 @@ export default function GatewaysPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Excluir gateway?")) return;
+    if (!confirm("Delete gateway?")) return;
     await adminApi.deleteGateway(id);
     reload();
   }
@@ -105,16 +105,16 @@ export default function GatewaysPage() {
   return (
     <AdminShell>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
-        <h1>Gateways de pagamento</h1>
+        <h1>Payment gateways</h1>
         {writable && (
           <button type="button" className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Cancelar" : "Novo gateway"}
+            {showForm ? "Cancel" : "New gateway"}
           </button>
         )}
       </div>
       {!writable && (
         <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginBottom: "1rem" }}>
-          Seu papel é somente leitura para gateways.
+          Your role is read-only for gateways.
         </p>
       )}
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
@@ -123,8 +123,8 @@ export default function GatewaysPage() {
         <form className="card" onSubmit={handleCreate} style={{ marginBottom: "1rem" }}>
           <div className="form-row">
             <div>
-              <label className="label">Nome</label>
-              <input className="input" name="name" required defaultValue="Novo gateway" />
+              <label className="label">Name</label>
+              <input className="input" name="name" required defaultValue="New gateway" />
             </div>
             <div>
               <label className="label">Provider</label>
@@ -147,9 +147,9 @@ export default function GatewaysPage() {
           <label className="label">Config (JSON)</label>
           <textarea className="input" name="config" rows={6} style={{ fontFamily: "monospace", fontSize: "0.85rem" }} defaultValue={JSON.stringify(PROVIDER_TEMPLATES.manual_pix, null, 2)} />
           <label style={{ display: "block", margin: "0.75rem 0" }}>
-            <input type="checkbox" name="active" /> Ativo
+            <input type="checkbox" name="active" /> Active
           </label>
-          <button type="submit" className="btn btn-primary">Salvar</button>
+          <button type="submit" className="btn btn-primary">Save</button>
         </form>
       )}
 
@@ -157,10 +157,10 @@ export default function GatewaysPage() {
         <table>
           <thead>
             <tr>
-              <th>Nome</th>
+              <th>Name</th>
               <th>Provider</th>
-              <th>Config (chaves)</th>
-              <th>Ativo</th>
+              <th>Config (keys)</th>
+              <th>Active</th>
               <th></th>
             </tr>
           </thead>
@@ -172,18 +172,18 @@ export default function GatewaysPage() {
                 <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
                   {Object.keys(g.config ?? {}).join(", ") || "—"}
                 </td>
-                <td>{g.active ? "Sim" : "Não"}</td>
+                <td>{g.active ? "Yes" : "No"}</td>
                 <td>
                   {writable ? (
                     <>
                       <button type="button" className="btn btn-ghost" onClick={() => setEditing(editing === g.id ? null : g.id)}>
-                        Editar
+                        Edit
                       </button>{" "}
                       <button type="button" className="btn btn-ghost" onClick={() => toggleActive(g)}>
                         Toggle
                       </button>{" "}
                       <button type="button" className="btn btn-danger" onClick={() => remove(g.id)}>
-                        Excluir
+                        Delete
                       </button>
                     </>
                   ) : (
@@ -201,14 +201,14 @@ export default function GatewaysPage() {
         if (!g) return null;
         return (
           <form className="card" onSubmit={(e) => saveEdit(g, e)} style={{ marginTop: "1rem" }}>
-            <h3 style={{ marginBottom: "0.75rem" }}>Editar “{g.name}” ({PROVIDER_LABEL[g.provider] ?? g.provider})</h3>
+            <h3 style={{ marginBottom: "0.75rem" }}>Edit “{g.name}” ({PROVIDER_LABEL[g.provider] ?? g.provider})</h3>
             <label className="label">Config (JSON)</label>
             <textarea className="input" name="config" rows={8} style={{ fontFamily: "monospace", fontSize: "0.85rem" }} defaultValue={JSON.stringify(g.config ?? {}, null, 2)} />
             <label style={{ display: "block", margin: "0.75rem 0" }}>
-              <input type="checkbox" name="active" defaultChecked={g.active} /> Ativo
+              <input type="checkbox" name="active" defaultChecked={g.active} /> Active
             </label>
-            <button type="submit" className="btn btn-primary">Salvar</button>{" "}
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>Cancelar</button>
+            <button type="submit" className="btn btn-primary">Save</button>{" "}
+            <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
           </form>
         );
       })()}

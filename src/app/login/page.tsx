@@ -25,7 +25,7 @@ export default function LoginPage() {
       setSession(res.token, res.role, res.permissions);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha no login");
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -42,13 +42,13 @@ export default function LoginPage() {
           {error && (
             <p style={{ color: "var(--danger)", marginBottom: "1rem" }}>{error}</p>
           )}
-          <label className="label">E-mail</label>
+          <label className="label">Email</label>
           <input className="input" name="email" type="email" required />
-          <label className="label">Senha</label>
+          <label className="label">Password</label>
           <input className="input" name="password" type="password" required />
           <Turnstile onToken={setTurnstileToken} />
           <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
-            {loading ? "Entrando…" : "Entrar"}
+            {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>

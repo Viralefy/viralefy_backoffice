@@ -10,18 +10,18 @@ import { adminApi, type Order } from "@/lib/api";
 // página de detalhe.
 
 const STATUS_FILTERS = [
-  { value: "", label: "Todos" },
-  { value: "pending", label: "Pendentes" },
-  { value: "paid", label: "Pagos" },
-  { value: "failed", label: "Falharam" },
-  { value: "cancelled", label: "Cancelados" },
+  { value: "", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "paid", label: "Paid" },
+  { value: "failed", label: "Failed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 const statusLabel: Record<string, string> = {
-  pending: "Pendente",
-  paid: "Pago",
-  failed: "Falhou",
-  cancelled: "Cancelado",
+  pending: "Pending",
+  paid: "Paid",
+  failed: "Failed",
+  cancelled: "Cancelled",
 };
 
 export default function OrdersPage() {
@@ -54,7 +54,7 @@ export default function OrdersPage() {
 
   return (
     <AdminShell>
-      <h1 style={{ marginBottom: "1rem" }}>Pedidos</h1>
+      <h1 style={{ marginBottom: "1rem" }}>Orders</h1>
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
 
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
@@ -71,7 +71,7 @@ export default function OrdersPage() {
         ))}
         <input
           className="input"
-          placeholder="Buscar por ID/nome/e-mail/categoria/plano…"
+          placeholder="Search by ID, name, email, category, or plan…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           style={{ flex: 1, minWidth: 220 }}
@@ -83,12 +83,12 @@ export default function OrdersPage() {
           <thead>
             <tr style={{ background: "var(--accent-dim)", borderBottom: "1px solid var(--border)" }}>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>ID</th>
-              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Cliente</th>
-              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Plano</th>
-              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Categoria</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Customer</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Plan</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Category</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Status</th>
-              <th style={{ padding: "0.65rem 1rem", textAlign: "right" }}>Valor</th>
-              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Criado</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "right" }}>Amount</th>
+              <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Created</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }} />
             </tr>
           </thead>
@@ -136,7 +136,7 @@ export default function OrdersPage() {
                   {o.display_amount} {o.display_currency}
                 </td>
                 <td style={{ padding: "0.65rem 1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
-                  {new Date(o.created_at).toLocaleString("pt-BR")}
+                  {new Date(o.created_at).toLocaleString()}
                 </td>
                 <td style={{ padding: "0.65rem 1rem" }}>
                   <Link
@@ -145,7 +145,7 @@ export default function OrdersPage() {
                     style={{ padding: "0.3rem 0.7rem", fontSize: "0.8rem" }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    Abrir
+                    Open
                   </Link>
                 </td>
               </tr>
@@ -153,7 +153,7 @@ export default function OrdersPage() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <p style={{ color: "var(--muted)", padding: "1rem" }}>Nenhum pedido encontrado.</p>
+          <p style={{ color: "var(--muted)", padding: "1rem" }}>No orders found.</p>
         )}
       </div>
     </AdminShell>
