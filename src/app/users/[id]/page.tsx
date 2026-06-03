@@ -40,16 +40,20 @@ export default function UserDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Ajuste de saldo. Unidade do form = USD (não R$). Créditos são USD-cents
+  // canônicos desde a migração 011 — admin digita "50" → grava $ 50.00. Antes
+  // o form rotulava "Δ em R$" e o admin entrava 50 achando R$ 50, mas saía $ 50
+  // USD no ledger (≈ R$ 270). Bug silencioso. Agora "Δ em USD" + dialog "$ X".
   async function onAdjust(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const reais = parseFloat(String(fd.get("delta") ?? "0").replace(",", "."));
-    if (!reais || isNaN(reais)) return;
+    const usdDelta = parseFloat(String(fd.get("delta") ?? "0").replace(",", "."));
+    if (!usdDelta || isNaN(usdDelta)) return;
     const description = String(fd.get("description") ?? "Ajuste manual");
-    if (!confirm(`${reais > 0 ? "Creditar" : "Debitar"} R$ ${Math.abs(reais).toFixed(2)} para ${data?.user.email}?`)) return;
+    if (!confirm(`${usdDelta > 0 ? "Creditar" : "Debitar"} $ ${Math.abs(usdDelta).toFixed(2)} USD para ${data?.user.email}?`)) return;
     setAdjusting(true);
     try {
-      await adminApi.adjustCredits(id, Math.round(reais * 100), description);
+      await adminApi.adjustCredits(id, Math.round(usdDelta * 100), description);
       (e.target as HTMLFormElement).reset();
       load();
     } catch (err) {
@@ -94,11 +98,11 @@ export default function UserDetailPage() {
         <form onSubmit={onAdjust} className="card" style={{ marginBottom: "1.5rem" }}>
           <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Ajustar saldo</h2>
           <p style={{ color: "var(--muted)", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
-            Use valor negativo para debitar. Cada ajuste vira uma linha no ledger.
+            Use valor negativo para debitar. Cada ajuste vira uma linha no ledger. Saldo é canonicamente USD-cents — entre o valor em <strong>USD</strong>.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr auto", gap: "0.5rem", alignItems: "end" }}>
             <div>
-              <label className="label" htmlFor="delta">Δ em R$</label>
+              <label className="label" htmlFor="delta">Δ em USD ($)</label>
               <input className="input" id="delta" name="delta" type="number" step="0.01" placeholder="Ex.: 50 ou -10" required />
             </div>
             <div>
