@@ -213,6 +213,38 @@ export const adminApi = {
     ),
   markOrderPaid: (id: string) =>
     request<void>(`/v1/admin/orders/${id}/mark-paid`, { method: "POST" }),
+
+  listReviews: (filter?: { only_hidden?: boolean; plan_id?: string; category?: string }) => {
+    const q = new URLSearchParams();
+    if (filter?.only_hidden) q.set("only_hidden", "1");
+    if (filter?.plan_id) q.set("plan_id", filter.plan_id);
+    if (filter?.category) q.set("category", filter.category);
+    const qs = q.toString();
+    return request<AdminReview[]>(`/v1/admin/reviews${qs ? `?${qs}` : ""}`);
+  },
+  setReviewVisibility: (id: string, visible: boolean) =>
+    request<AdminReview>(`/v1/admin/reviews/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ visible }),
+    }),
+};
+
+export type AdminReview = {
+  id: string;
+  user_id: string;
+  order_id: string;
+  plan_id: string;
+  plan_category: string;
+  country_code: string;
+  rating: number;
+  title: string;
+  body: string;
+  visible: boolean;
+  created_at: string;
+  updated_at: string;
+  user_name: string;
+  user_email: string;
+  plan_name: string;
 };
 
 export type UserView = {

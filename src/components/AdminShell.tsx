@@ -15,6 +15,7 @@ const links = [
   { href: "/gateways", label: "Gateways" },
   { href: "/invoices", label: "Top-ups" },
   { href: "/tickets", label: "Support" },
+  { href: "/reviews", label: "Reviews" },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
