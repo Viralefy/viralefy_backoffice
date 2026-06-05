@@ -36,19 +36,27 @@ export default function LoginPage() {
       <div className="card login-card">
         <h1 style={{ marginBottom: "0.5rem" }}>Viralefy Admin</h1>
         <p style={{ color: "var(--muted)", marginBottom: "1.5rem", fontSize: "0.9rem" }}>
-          admin@viralefy.local / SimTest!Admin2026 (dev)
+          Sign in to manage the marketplace.
         </p>
         <form onSubmit={onSubmit}>
           {error && (
             <p style={{ color: "var(--danger)", marginBottom: "1rem" }}>{error}</p>
           )}
           <label className="label">Email</label>
-          <input className="input" name="email" type="email" required />
+          <input className="input" name="email" type="email" autoComplete="email" required />
           <label className="label">Password</label>
-          <input className="input" name="password" type="password" required />
+          <input className="input" name="password" type="password" autoComplete="current-password" required />
           <Turnstile onToken={setTurnstileToken} />
-          <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
+          {/* Submit fica trancado até o Turnstile resolver: API rejeita token
+              vazio como INVALID_INPUT, então mostra "checking…" em vez de
+              deixar o usuário enviar antes do widget montar. */}
+          <button
+            type="submit"
+            className="btn btn-primary"
+            style={{ width: "100%" }}
+            disabled={loading || !turnstileToken}
+          >
+            {loading ? "Signing in…" : turnstileToken ? "Sign in" : "Checking…"}
           </button>
         </form>
       </div>

@@ -14,4 +14,4 @@ npm install
 npm run dev
 ```
 
-http://localhost:3001 — login: `admin@viralefy.local` / `SimTest!Admin2026`
+http://localhost:3001 — credenciais vêm de `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` (lidas pelo seed do API na primeira subida). Em ambientes onde já tem admin no banco, use o que está cadastrado.
