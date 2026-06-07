@@ -91,6 +91,7 @@ export type Order = {
   delivery_metrics?: Record<string, unknown> | null;
   delivery_captured_at?: string | null;
   delivery_source?: string | null;
+  refunded_usd_cents?: number;
   created_at: string;
   updated_at?: string;
 };
@@ -104,6 +105,19 @@ export type InvoiceDetail = {
     name: string;
     email: string;
   };
+};
+
+// OrderRefund = registro do histórico de estornos emitidos sobre um
+// pedido pago (Fase 5.4). Imutável (somente INSERT).
+export type OrderRefund = {
+  id: string;
+  order_id: string;
+  refund_usd_cents: number;
+  refund_type: "to_credits" | "to_gateway";
+  reason?: string;
+  refunded_by: string;
+  external_ref?: string;
+  created_at: string;
 };
 
 // OrderDetail = order com profile e user hidratados. Forma da resposta
@@ -213,6 +227,17 @@ export const adminApi = {
     ),
   markOrderPaid: (id: string) =>
     request<void>(`/v1/admin/orders/${id}/mark-paid`, { method: "POST" }),
+
+  issueRefund: (
+    id: string,
+    body: { refund_usd_cents: number; refund_type: "to_credits" | "to_gateway"; reason?: string; external_ref?: string }
+  ) =>
+    request<OrderRefund>(`/v1/admin/orders/${id}/refund`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  listOrderRefunds: (id: string) =>
+    request<OrderRefund[]>(`/v1/admin/orders/${id}/refunds`),
 
   listReviews: (filter?: { only_hidden?: boolean; plan_id?: string; category?: string }) => {
     const q = new URLSearchParams();
