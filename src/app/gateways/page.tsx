@@ -61,12 +61,36 @@ const PROVIDERS: ProviderDef[] = [
   },
   {
     code: "manual_usdt",
-    label: "Manual USDT (fixed wallet, no integration)",
-    defaultCurrencies: ["USDT", "USD"],
+    label: "Manual USDT — DEPRECATED (use manual_crypto)",
+    defaultCurrencies: ["USDT"],
     fields: [
       { key: "wallet_address", label: "USDT wallet address", placeholder: "TR... / 0x..." },
       { key: "network", label: "Network", placeholder: "TRC20 / ERC20 / BEP20 / Polygon / Solana", help: "Customer needs to use the EXACT network. Wrong network = lost funds." },
       { key: "memo", label: "Memo / tag (optional)", placeholder: "Optional — only if your exchange requires it" },
+    ],
+  },
+  {
+    code: "manual_crypto",
+    label: "Manual Crypto (one wallet per network/asset)",
+    defaultCurrencies: ["USDT"],
+    fields: [
+      { key: "wallet_address", label: "Wallet address", placeholder: "TR... / 0x... / bc1... / L..." },
+      { key: "network", label: "Network", placeholder: "TRC20, BEP20, ERC20, Polygon, Solana, Bitcoin, Litecoin…", help: "EXACT network code. Customer must send on this network only — wrong network = lost funds forever." },
+      { key: "network_label", label: "Display label (optional)", placeholder: "ex: USDT (Tron) — overrides the auto-label" },
+      { key: "network_warning", label: "Warning override (optional)", placeholder: "Custom warning shown to customer" },
+      { key: "memo", label: "Memo / tag (optional)", placeholder: "Required by some exchanges (Solana, BNB Beacon)" },
+    ],
+  },
+  {
+    code: "stripe",
+    label: "Stripe — credit/debit card",
+    defaultCurrencies: ["USD", "EUR", "BRL", "GBP"],
+    fields: [
+      { key: "secret_key", label: "Secret key (sk_live_…)", sensitive: true, help: "Stripe dashboard > Developers > API keys" },
+      { key: "webhook_secret", label: "Webhook secret (whsec_…)", sensitive: true, help: "Used to verify Stripe events when the webhook is wired" },
+      { key: "success_url", label: "Success URL (optional)", placeholder: "https://www.viralefy.com/account/orders/{order_id}", help: "Default uses site URL + order id" },
+      { key: "cancel_url", label: "Cancel URL (optional)", placeholder: "https://www.viralefy.com/checkout/cancelled" },
+      { key: "payment_method_types", label: "Methods (CSV, optional)", placeholder: "card,link,boleto", help: "Default: card" },
     ],
   },
 ];
@@ -77,7 +101,7 @@ const PROVIDER_BY_CODE: Record<string, ProviderDef> = Object.fromEntries(
 
 // Moedas disponíveis no picker. Casa com o filtro de validCurrencyCode no
 // backend (3-5 letras maiúsculas).
-const SUPPORTED_CURRENCIES = ["USDT", "USD", "EUR", "BRL", "BTC"] as const;
+const SUPPORTED_CURRENCIES = ["USDT", "USD", "EUR", "BRL", "GBP", "BTC", "LTC", "ETH", "BNB", "SOL", "TRX", "MATIC"] as const;
 
 // Cores fixas pros chips de moeda — ajuda admin a bater de olho qual
 // gateway aceita o quê.
