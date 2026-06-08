@@ -29,14 +29,19 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
+  const [pendingProofCount, setPendingProofCount] = useState<number>(0);
+  const [showOnlyPendingProofs, setShowOnlyPendingProofs] = useState(false);
 
   useEffect(() => {
     adminApi.listOrders().then(setOrders).catch((e) => setError(e.message));
+    // Fila de proofs pendentes — busca leve, só pra badge no topo.
+    adminApi.listPendingProofs(200).then((rows) => setPendingProofCount(rows.length)).catch(() => undefined);
   }, []);
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
       if (status && o.status !== status) return false;
+      if (showOnlyPendingProofs && o.proof_status !== "pending") return false;
       if (q) {
         const needle = q.toLowerCase();
         return (
@@ -54,7 +59,20 @@ export default function OrdersPage() {
 
   return (
     <AdminShell>
-      <h1 style={{ marginBottom: "1rem" }}>Orders</h1>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", gap: "1rem", flexWrap: "wrap" }}>
+        <h1 style={{ margin: 0 }}>Orders</h1>
+        {pendingProofCount > 0 && (
+          <button
+            type="button"
+            className={showOnlyPendingProofs ? "btn btn-primary" : "btn btn-outline"}
+            onClick={() => setShowOnlyPendingProofs((v) => !v)}
+            style={{ padding: "0.4rem 0.9rem", fontSize: "0.85rem" }}
+            title="Filter to orders with proof_status=pending"
+          >
+            📎 Proofs to review · {pendingProofCount}
+          </button>
+        )}
+      </div>
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
 
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>

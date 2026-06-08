@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AdminShell } from "@/components/AdminShell";
-import { adminApi, type OrderDetail, type OrderRefund } from "@/lib/api";
+import { adminApi, type Order, type OrderDetail, type OrderRefund } from "@/lib/api";
 import { can } from "@/lib/auth";
 
 // Detalhe do pedido — order completo + profile e user hidratados (clicáveis
@@ -275,6 +275,15 @@ export default function OrderDetailPage() {
         </Section>
       </div>
 
+      {/* Proof of payment — comprovante anexado pelo cliente (PIX/USDT manual) */}
+      {order.proof_url && (
+        <ProofCard
+          order={order}
+          canEdit={canEdit}
+          onDecided={load}
+        />
+      )}
+
       {/* Baseline vs Delivery — fonte secundária de verdade pra confirmar entrega */}
       <BaselineDeliveryCard
         order={order}
@@ -495,6 +504,120 @@ function RefundModal({
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// ProofCard mostra o comprovante anexado pelo cliente + botões approve/
+// reject. Approve dispara mark-as-paid em sequência (fecha o loop manual:
+// cliente paga → anexa → admin aprova → order ativada).
+function ProofCard({
+  order,
+  canEdit,
+  onDecided,
+}: {
+  order: Order;
+  canEdit: boolean;
+  onDecided: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const isDataURL = (order.proof_url ?? "").startsWith("data:");
+  const isImg = isDataURL ? /^data:image\//.test(order.proof_url ?? "") : false;
+  const status = order.proof_status ?? "pending";
+  const statusColor = status === "approved" ? "#3cd87d" : status === "rejected" ? "#ff8a8a" : "#fcd34d";
+
+  async function decide(decision: "approved" | "rejected") {
+    if (!canEdit) return;
+    const label = decision === "approved"
+      ? "Approve this proof? It WILL fire mark-as-paid (email, ticket, admin webhook)."
+      : "Reject this proof? Customer is notified to re-attach.";
+    if (!confirm(label)) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await adminApi.proofDecision(order.id, decision, note);
+      onDecided();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+        <h2 style={{ margin: 0, fontSize: "1.05rem" }}>Payment proof</h2>
+        <span
+          style={{
+            background: "var(--accent-dim)",
+            color: statusColor,
+            padding: "0.2rem 0.6rem",
+            borderRadius: 999,
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            textTransform: "uppercase",
+          }}
+        >
+          {status}
+        </span>
+      </div>
+      <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0 0 0.75rem" }}>
+        Uploaded {order.proof_uploaded_at ? new Date(order.proof_uploaded_at).toLocaleString() : "—"}
+        {order.proof_note && (
+          <>
+            {" · "}<strong>Note:</strong> {order.proof_note}
+          </>
+        )}
+      </p>
+      {err && <div className="alert alert-error" style={{ marginBottom: "0.5rem" }}>{err}</div>}
+      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <div style={{ flex: "1 1 280px", minWidth: 0 }}>
+          {isImg && order.proof_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={order.proof_url}
+              alt="Payment proof"
+              style={{ maxWidth: "100%", maxHeight: 360, borderRadius: "0.5rem", border: "1px solid var(--border)" }}
+            />
+          ) : (
+            <a href={order.proof_url ?? "#"} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+              📎 Open proof file
+            </a>
+          )}
+        </div>
+        {canEdit && status === "pending" && (
+          <div style={{ flex: "1 1 240px", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <label className="label">Reviewer note (optional)</label>
+            <textarea
+              className="input"
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="ex.: confirmed TX 0xabcd…, deposited at 14:35"
+              disabled={busy}
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => decide("approved")}
+              disabled={busy}
+            >
+              {busy ? "Working…" : "✓ Approve + mark paid"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => decide("rejected")}
+              disabled={busy}
+            >
+              ✗ Reject (customer re-attaches)
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

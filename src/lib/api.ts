@@ -93,6 +93,13 @@ export type Order = {
   delivery_captured_at?: string | null;
   delivery_source?: string | null;
   refunded_usd_cents?: number;
+  // Proof of payment (migration 034). Cliente anexa comprovante de PIX
+  // ou TX hash crypto; admin revisa em /orders/[id] e clica approve
+  // (dispara mark-as-paid) ou reject (volta pendente, cliente reanexa).
+  proof_url?: string | null;
+  proof_uploaded_at?: string | null;
+  proof_status?: "pending" | "approved" | "rejected" | null;
+  proof_note?: string | null;
   created_at: string;
   updated_at?: string;
 };
@@ -239,6 +246,20 @@ export const adminApi = {
     ),
   markOrderPaid: (id: string) =>
     request<void>(`/v1/admin/orders/${id}/mark-paid`, { method: "POST" }),
+
+  // Proof: cliente anexou comprovante (PIX / TX hash crypto), admin
+  // decide approved (dispara mark-as-paid em sequência) ou rejected
+  // (volta pro cliente reanexar).
+  proofDecision: (id: string, decision: "approved" | "rejected", note?: string) =>
+    request<{ order: { id: string; status: string; proof_status?: string | null } }>(
+      `/v1/admin/orders/${id}/proof/decision`,
+      { method: "POST", body: JSON.stringify({ decision, note }) },
+    ),
+
+  listPendingProofs: (limit = 50) =>
+    request<Array<{ id: string; user_email?: string; plan_name?: string; proof_url?: string | null; proof_uploaded_at?: string | null; display_currency: string; display_amount: string }>>(
+      `/v1/admin/proofs/pending?limit=${limit}`,
+    ),
 
   issueRefund: (
     id: string,
