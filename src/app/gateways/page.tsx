@@ -59,6 +59,16 @@ const PROVIDERS: ProviderDef[] = [
       { key: "webhook_secret", label: "Webhook secret", sensitive: true },
     ],
   },
+  {
+    code: "manual_usdt",
+    label: "Manual USDT (fixed wallet, no integration)",
+    defaultCurrencies: ["USDT", "USD"],
+    fields: [
+      { key: "wallet_address", label: "USDT wallet address", placeholder: "TR... / 0x..." },
+      { key: "network", label: "Network", placeholder: "TRC20 / ERC20 / BEP20 / Polygon / Solana", help: "Customer needs to use the EXACT network. Wrong network = lost funds." },
+      { key: "memo", label: "Memo / tag (optional)", placeholder: "Optional — only if your exchange requires it" },
+    ],
+  },
 ];
 
 const PROVIDER_BY_CODE: Record<string, ProviderDef> = Object.fromEntries(

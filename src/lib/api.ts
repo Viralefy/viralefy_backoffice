@@ -169,8 +169,19 @@ export async function login(email: string, password: string, turnstileToken?: st
   });
 }
 
+export type BecomeCustomerResult = {
+  session: {
+    token: string;
+    expires_at: string;
+    user: { id: string; email: string; name: string; instagram: string };
+  };
+  generated_password: string;
+};
+
 export const adminApi = {
   me: () => request<Principal>("/v1/admin/me"),
+  becomeCustomer: () =>
+    request<BecomeCustomerResult>("/v1/admin/me/become-customer", { method: "POST" }),
   listCategories: () => request<Category[]>("/v1/categories"),
 
   listPlans: () => request<Plan[]>("/v1/admin/plans"),

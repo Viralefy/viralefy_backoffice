@@ -38,7 +38,10 @@ export default function DashboardPage() {
 
   return (
     <AdminShell>
-      <h1 style={{ marginBottom: "1.5rem" }}>Dashboard</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+        <h1 style={{ margin: 0 }}>Dashboard</h1>
+        <BecomeCustomerButton />
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
         <Tile label="Total revenue (USD)" value={`$ ${data.revenue_usd}`} accent />
@@ -139,6 +142,58 @@ function Tile({ label, value, accent }: { label: string; value: string; accent?:
       <div style={{ fontSize: "1.8rem", fontWeight: 800, color: accent ? "var(--accent)" : "var(--text)" }}>
         {value}
       </div>
+    </div>
+  );
+}
+
+// Botão pra abrir a loja autenticado como customer espelhando o admin
+// logado. Idempotente — chama POST /v1/admin/me/become-customer, recebe
+// token de user session + (apenas na primeira vez) a senha gerada. Stash
+// no localStorage do front e abre a loja em nova aba já logado.
+function BecomeCustomerButton() {
+  const [busy, setBusy] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
+  const siteURL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.viralefy.com";
+
+  async function onClick() {
+    setBusy(true);
+    setHint(null);
+    try {
+      const res = await adminApi.becomeCustomer();
+      // Persiste o session token no domínio da loja via página intermediária
+      // — abre /auth/handoff?token=... que faz localStorage.setItem e
+      // redireciona pra /account. Como localStorage é per-origin, o
+      // backoffice (admin.viralefy.com) NÃO consegue setar pra
+      // www.viralefy.com diretamente; a página handoff resolve isso.
+      const url = new URL("/auth/handoff", siteURL);
+      url.searchParams.set("token", res.session.token);
+      url.searchParams.set("user_id", res.session.user.id);
+      url.searchParams.set("user_email", res.session.user.email);
+      url.searchParams.set("user_name", res.session.user.name);
+      url.searchParams.set("next", "/account");
+      window.open(url.toString(), "_blank", "noopener,noreferrer");
+      if (res.generated_password) {
+        setHint(`Customer account created. One-time login: ${res.session.user.email} / ${res.generated_password} (save it).`);
+      } else {
+        setHint(`Opened customer side for ${res.session.user.email}.`);
+      }
+    } catch (e) {
+      setHint(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ textAlign: "right" }}>
+      <button type="button" className="btn btn-outline" onClick={onClick} disabled={busy}>
+        {busy ? "Opening…" : "Open customer side ↗"}
+      </button>
+      {hint && (
+        <p style={{ marginTop: "0.4rem", fontSize: "0.75rem", color: "var(--muted)", maxWidth: 360 }}>
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
