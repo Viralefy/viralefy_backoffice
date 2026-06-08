@@ -1,28 +1,154 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type Gateway } from "@/lib/api";
 import { can } from "@/lib/auth";
 
-// Templates de config por provider — facilitam o preenchimento (admin pode editar).
-const PROVIDER_TEMPLATES: Record<string, Record<string, string>> = {
-  manual_pix: { pix_key: "" },
-  woovi: { app_id: "", base_url: "https://api.woovi.com.br" },
-  heleket: { merchant_id: "", api_key: "", base_url: "https://api.heleket.com", url_callback: "" },
+// PROVIDERS define o contrato visual de cada provider:
+// - quais campos aparecem no editor (com label/help/sensitive)
+// - quais moedas o provider tipicamente liquida (default sugerido)
+//
+// O backend continua armazenando `config` como JSONB livre — esse mapa só
+// projeta o formulário. Adicionar um provider novo = uma entrada aqui +
+// inclusão no enum do gateway_service.go.
+type FieldDef = {
+  key: string;
+  label: string;
+  help?: string;
+  sensitive?: boolean;
+  placeholder?: string;
 };
 
-const PROVIDER_LABEL: Record<string, string> = {
-  manual_pix: "Manual Pix (no integration)",
-  woovi: "Woovi — Pix",
-  heleket: "Heleket — crypto (USDT/BTC)",
+type ProviderDef = {
+  code: string;
+  label: string;
+  fields: FieldDef[];
+  defaultCurrencies: string[];
 };
+
+const PROVIDERS: ProviderDef[] = [
+  {
+    code: "manual_pix",
+    label: "Manual Pix (no integration)",
+    defaultCurrencies: ["BRL"],
+    fields: [
+      { key: "pix_key", label: "Pix key", placeholder: "email / CPF / random" },
+      { key: "beneficiary_name", label: "Beneficiary name", placeholder: "Holder shown on the bank slip" },
+    ],
+  },
+  {
+    code: "woovi",
+    label: "Woovi — Pix",
+    defaultCurrencies: ["BRL"],
+    fields: [
+      { key: "app_id", label: "App ID", sensitive: true, help: "Woovi dashboard > Apps & Webhooks" },
+      { key: "base_url", label: "Base URL", placeholder: "https://api.woovi.com.br" },
+      { key: "webhook_secret", label: "Webhook secret", sensitive: true, help: "HMAC secret used to verify callbacks" },
+    ],
+  },
+  {
+    code: "heleket",
+    label: "Heleket — crypto (USDT/BTC)",
+    defaultCurrencies: ["USDT", "USD"],
+    fields: [
+      { key: "merchant_id", label: "Merchant ID" },
+      { key: "api_key", label: "API key", sensitive: true },
+      { key: "base_url", label: "Base URL", placeholder: "https://api.heleket.com" },
+      { key: "url_callback", label: "Callback URL", help: "Your /v1/payments/heleket/webhook" },
+      { key: "webhook_secret", label: "Webhook secret", sensitive: true },
+    ],
+  },
+];
+
+const PROVIDER_BY_CODE: Record<string, ProviderDef> = Object.fromEntries(
+  PROVIDERS.map((p) => [p.code, p]),
+);
+
+// Moedas disponíveis no picker. Casa com o filtro de validCurrencyCode no
+// backend (3-5 letras maiúsculas).
+const SUPPORTED_CURRENCIES = ["USDT", "USD", "EUR", "BRL", "BTC"] as const;
+
+// Cores fixas pros chips de moeda — ajuda admin a bater de olho qual
+// gateway aceita o quê.
+const CURRENCY_COLORS: Record<string, { bg: string; fg: string }> = {
+  USDT: { bg: "#0c4a3e", fg: "#34d399" },
+  USD: { bg: "#1e3a8a", fg: "#93c5fd" },
+  EUR: { bg: "#3b1e5c", fg: "#c4b5fd" },
+  BRL: { bg: "#5c2e1e", fg: "#fca5a5" },
+  BTC: { bg: "#5c4a1e", fg: "#fcd34d" },
+};
+
+type FormState = {
+  id: string | null;
+  name: string;
+  provider: string;
+  active: boolean;
+  config: Record<string, string>;
+  accepted_currencies: string[];
+};
+
+function emptyFormFor(code: string): FormState {
+  const def = PROVIDER_BY_CODE[code] ?? PROVIDERS[0];
+  const config: Record<string, string> = {};
+  for (const f of def.fields) config[f.key] = "";
+  return {
+    id: null,
+    name: "",
+    provider: def.code,
+    active: false,
+    config,
+    accepted_currencies: [...def.defaultCurrencies],
+  };
+}
+
+function fromGateway(g: Gateway): FormState {
+  const def = PROVIDER_BY_CODE[g.provider];
+  const config: Record<string, string> = {};
+  if (def) {
+    for (const f of def.fields) config[f.key] = g.config?.[f.key] ?? "";
+  } else {
+    // Provider desconhecido (legado) — preserva o que veio do servidor pra
+    // não apagar dados ao salvar.
+    Object.assign(config, g.config ?? {});
+  }
+  return {
+    id: g.id,
+    name: g.name,
+    provider: g.provider,
+    active: g.active,
+    config,
+    accepted_currencies: g.accepted_currencies ?? [],
+  };
+}
+
+function CurrencyChip({ code }: { code: string }) {
+  const c = CURRENCY_COLORS[code] ?? { bg: "#333", fg: "#ddd" };
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "0.1rem 0.5rem",
+        marginRight: "0.25rem",
+        borderRadius: "0.75rem",
+        background: c.bg,
+        color: c.fg,
+        fontSize: "0.75rem",
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+      }}
+    >
+      {code}
+    </span>
+  );
+}
 
 export default function GatewaysPage() {
   const [gateways, setGateways] = useState<Gateway[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const writable = can("gateways:write");
 
   function reload() {
@@ -33,82 +159,135 @@ export default function GatewaysPage() {
     reload();
   }, []);
 
-  function parseConfig(s: string): Record<string, string> | null {
-    if (!s.trim()) return {};
-    try {
-      const obj = JSON.parse(s);
-      if (typeof obj !== "object" || obj === null || Array.isArray(obj)) return null;
-      const out: Record<string, string> = {};
-      for (const [k, v] of Object.entries(obj)) out[k] = String(v ?? "");
-      return out;
-    } catch {
-      return null;
-    }
+  const currentProvider = useMemo<ProviderDef | null>(
+    () => (form ? PROVIDER_BY_CODE[form.provider] ?? null : null),
+    [form],
+  );
+
+  function startNew() {
+    setFieldErrors({});
+    setError(null);
+    setForm(emptyFormFor("manual_pix"));
   }
 
-  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  function startEdit(g: Gateway) {
+    setFieldErrors({});
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const config = parseConfig(String(fd.get("config") ?? "{}"));
-    if (!config) {
-      setError("Invalid config (must be JSON like {\"key\":\"value\"}).");
-      return;
-    }
-    try {
-      await adminApi.createGateway({
-        name: String(fd.get("name")),
-        provider: String(fd.get("provider")),
-        active: fd.get("active") === "on",
-        config,
-      });
-      setShowForm(false);
-      reload();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create gateway");
-    }
+    setForm(fromGateway(g));
   }
 
-  async function saveEdit(g: Gateway, e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    const fd = new FormData(e.currentTarget);
-    const config = parseConfig(String(fd.get("config") ?? "{}"));
-    if (!config) {
-      setError("Invalid config (must be JSON).");
-      return;
+  function cancelForm() {
+    setForm(null);
+    setFieldErrors({});
+  }
+
+  function changeProvider(code: string) {
+    if (!form) return;
+    const def = PROVIDER_BY_CODE[code];
+    if (!def) return;
+    const config: Record<string, string> = {};
+    for (const f of def.fields) config[f.key] = form.config[f.key] ?? "";
+    setForm({
+      ...form,
+      provider: code,
+      config,
+      // Switching provider only seeds defaults when user has no currencies
+      // selected — preserva escolha manual se já tinha.
+      accepted_currencies:
+        form.accepted_currencies.length === 0 ? [...def.defaultCurrencies] : form.accepted_currencies,
+    });
+  }
+
+  function toggleCurrency(code: string) {
+    if (!form) return;
+    const next = form.accepted_currencies.includes(code)
+      ? form.accepted_currencies.filter((c) => c !== code)
+      : [...form.accepted_currencies, code];
+    setForm({ ...form, accepted_currencies: next });
+  }
+
+  function setConfigField(key: string, value: string) {
+    if (!form) return;
+    setForm({ ...form, config: { ...form.config, [key]: value } });
+  }
+
+  function validate(f: FormState): Record<string, string> {
+    const errs: Record<string, string> = {};
+    if (!f.name.trim()) errs.name = "Name is required.";
+    if (!PROVIDER_BY_CODE[f.provider]) errs.provider = "Unknown provider.";
+    if (f.active && f.accepted_currencies.length === 0) {
+      errs.accepted_currencies = "Active gateway must accept at least one currency.";
     }
+    return errs;
+  }
+
+  async function save() {
+    if (!form) return;
+    const errs = validate(form);
+    setFieldErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+    setSaving(true);
+    setError(null);
+    // Strip empty config values so the JSONB stays clean (não polui com
+    // chaves vazias que o admin nem preencheu).
+    const cleanConfig: Record<string, string> = {};
+    for (const [k, v] of Object.entries(form.config)) {
+      if (v.trim() !== "") cleanConfig[k] = v;
+    }
+    const payload = {
+      name: form.name.trim(),
+      provider: form.provider,
+      active: form.active,
+      config: cleanConfig,
+      accepted_currencies: form.accepted_currencies,
+    };
     try {
-      await adminApi.updateGateway(g.id, {
-        ...g,
-        active: fd.get("active") === "on",
-        config,
-      });
-      setEditing(null);
+      if (form.id) {
+        await adminApi.updateGateway(form.id, payload);
+      } else {
+        await adminApi.createGateway(payload);
+      }
+      cancelForm();
       reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to save gateway");
+    } finally {
+      setSaving(false);
     }
   }
 
   async function toggleActive(g: Gateway) {
-    await adminApi.updateGateway(g.id, { ...g, active: !g.active });
-    reload();
+    try {
+      await adminApi.updateGateway(g.id, {
+        name: g.name,
+        provider: g.provider,
+        active: !g.active,
+        config: g.config,
+        accepted_currencies: g.accepted_currencies ?? [],
+      });
+      reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to toggle gateway");
+    }
   }
 
   async function remove(id: string) {
     if (!confirm("Delete gateway?")) return;
-    await adminApi.deleteGateway(id);
-    reload();
+    try {
+      await adminApi.deleteGateway(id);
+      reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to delete gateway");
+    }
   }
 
   return (
     <AdminShell>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
         <h1>Payment gateways</h1>
-        {writable && (
-          <button type="button" className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-            {showForm ? "Cancel" : "New gateway"}
+        {writable && !form && (
+          <button type="button" className="btn btn-primary" onClick={startNew}>
+            New gateway
           </button>
         )}
       </div>
@@ -119,37 +298,138 @@ export default function GatewaysPage() {
       )}
       {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
 
-      {showForm && writable && (
-        <form className="card" onSubmit={handleCreate} style={{ marginBottom: "1rem" }}>
+      {form && writable && currentProvider && (
+        <form
+          className="card"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+          style={{ marginBottom: "1rem" }}
+        >
+          <h3 style={{ marginBottom: "0.75rem" }}>
+            {form.id ? `Edit "${form.name}"` : "New gateway"}
+          </h3>
+
           <div className="form-row">
             <div>
               <label className="label">Name</label>
-              <input className="input" name="name" required defaultValue="New gateway" />
+              <input
+                className="input"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Internal label, e.g. Woovi (prod)"
+              />
+              {fieldErrors.name && (
+                <p style={{ color: "var(--danger)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                  {fieldErrors.name}
+                </p>
+              )}
             </div>
             <div>
               <label className="label">Provider</label>
               <select
                 className="input"
-                name="provider"
-                defaultValue="manual_pix"
-                onChange={(e) => {
-                  const tmpl = PROVIDER_TEMPLATES[e.target.value] ?? {};
-                  const ta = e.currentTarget.form?.elements.namedItem("config") as HTMLTextAreaElement | null;
-                  if (ta) ta.value = JSON.stringify(tmpl, null, 2);
-                }}
+                value={form.provider}
+                onChange={(e) => changeProvider(e.target.value)}
+                disabled={Boolean(form.id)}
               >
-                {Object.entries(PROVIDER_LABEL).map(([code, label]) => (
-                  <option key={code} value={code}>{label}</option>
+                {PROVIDERS.map((p) => (
+                  <option key={p.code} value={p.code}>
+                    {p.label}
+                  </option>
                 ))}
               </select>
+              {form.id && (
+                <p style={{ color: "var(--muted)", fontSize: "0.75rem", marginTop: "0.25rem" }}>
+                  Provider cannot be changed on an existing gateway. Delete and recreate to switch.
+                </p>
+              )}
+              {fieldErrors.provider && (
+                <p style={{ color: "var(--danger)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                  {fieldErrors.provider}
+                </p>
+              )}
             </div>
           </div>
-          <label className="label">Config (JSON)</label>
-          <textarea className="input" name="config" rows={6} style={{ fontFamily: "monospace", fontSize: "0.85rem" }} defaultValue={JSON.stringify(PROVIDER_TEMPLATES.manual_pix, null, 2)} />
+
+          <div style={{ marginTop: "1rem" }}>
+            <label className="label">Accepted currencies</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              {SUPPORTED_CURRENCIES.map((c) => {
+                const on = form.accepted_currencies.includes(c);
+                const col = CURRENCY_COLORS[c];
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => toggleCurrency(c)}
+                    style={{
+                      padding: "0.35rem 0.75rem",
+                      borderRadius: "0.5rem",
+                      border: on ? `1px solid ${col.fg}` : "1px solid #444",
+                      background: on ? col.bg : "transparent",
+                      color: on ? col.fg : "var(--muted)",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+            {fieldErrors.accepted_currencies && (
+              <p style={{ color: "var(--danger)", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+                {fieldErrors.accepted_currencies}
+              </p>
+            )}
+            <p style={{ color: "var(--muted)", fontSize: "0.75rem", marginTop: "0.25rem" }}>
+              Checkout will only route an order to this gateway if the settlement currency matches one of the picked codes.
+            </p>
+          </div>
+
+          <div style={{ marginTop: "1rem" }}>
+            <label className="label" style={{ marginBottom: "0.5rem" }}>
+              {currentProvider.label} configuration
+            </label>
+            {currentProvider.fields.map((field) => (
+              <div key={field.key} style={{ marginBottom: "0.75rem" }}>
+                <label className="label" style={{ fontSize: "0.8rem" }}>
+                  {field.label}
+                </label>
+                <input
+                  className="input"
+                  type={field.sensitive ? "password" : "text"}
+                  value={form.config[field.key] ?? ""}
+                  onChange={(e) => setConfigField(field.key, e.target.value)}
+                  placeholder={field.placeholder}
+                  autoComplete="off"
+                />
+                {field.help && (
+                  <p style={{ color: "var(--muted)", fontSize: "0.72rem", marginTop: "0.2rem" }}>
+                    {field.help}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
           <label style={{ display: "block", margin: "0.75rem 0" }}>
-            <input type="checkbox" name="active" /> Active
+            <input
+              type="checkbox"
+              checked={form.active}
+              onChange={(e) => setForm({ ...form, active: e.target.checked })}
+            />{" "}
+            Active
           </label>
-          <button type="submit" className="btn btn-primary">Save</button>
+
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </button>{" "}
+          <button type="button" className="btn btn-ghost" onClick={cancelForm} disabled={saving}>
+            Cancel
+          </button>
         </form>
       )}
 
@@ -159,8 +439,8 @@ export default function GatewaysPage() {
             <tr>
               <th>Name</th>
               <th>Provider</th>
-              <th>Config (keys)</th>
-              <th>Active</th>
+              <th>Accepted currencies</th>
+              <th>Status</th>
               <th></th>
             </tr>
           </thead>
@@ -168,19 +448,33 @@ export default function GatewaysPage() {
             {gateways.map((g) => (
               <tr key={g.id}>
                 <td>{g.name}</td>
-                <td>{PROVIDER_LABEL[g.provider] ?? g.provider}</td>
-                <td style={{ fontSize: "0.85rem", color: "var(--muted)" }}>
-                  {Object.keys(g.config ?? {}).join(", ") || "—"}
+                <td>{PROVIDER_BY_CODE[g.provider]?.label ?? g.provider}</td>
+                <td>
+                  {(g.accepted_currencies ?? []).length > 0 ? (
+                    (g.accepted_currencies ?? []).map((c) => <CurrencyChip key={c} code={c} />)
+                  ) : (
+                    <span style={{ color: "var(--muted)", fontSize: "0.8rem" }}>—</span>
+                  )}
                 </td>
-                <td>{g.active ? "Yes" : "No"}</td>
+                <td>
+                  <span
+                    style={{
+                      color: g.active ? "#34d399" : "var(--muted)",
+                      fontWeight: 600,
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    {g.active ? "Active" : "Inactive"}
+                  </span>
+                </td>
                 <td>
                   {writable ? (
                     <>
-                      <button type="button" className="btn btn-ghost" onClick={() => setEditing(editing === g.id ? null : g.id)}>
+                      <button type="button" className="btn btn-ghost" onClick={() => startEdit(g)}>
                         Edit
                       </button>{" "}
                       <button type="button" className="btn btn-ghost" onClick={() => toggleActive(g)}>
-                        Toggle
+                        {g.active ? "Deactivate" : "Activate"}
                       </button>{" "}
                       <button type="button" className="btn btn-danger" onClick={() => remove(g.id)}>
                         Delete
@@ -192,26 +486,16 @@ export default function GatewaysPage() {
                 </td>
               </tr>
             ))}
+            {gateways.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ color: "var(--muted)", textAlign: "center", padding: "1rem" }}>
+                  No gateways configured.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-
-      {editing && writable && (() => {
-        const g = gateways.find((x) => x.id === editing);
-        if (!g) return null;
-        return (
-          <form className="card" onSubmit={(e) => saveEdit(g, e)} style={{ marginTop: "1rem" }}>
-            <h3 style={{ marginBottom: "0.75rem" }}>Edit “{g.name}” ({PROVIDER_LABEL[g.provider] ?? g.provider})</h3>
-            <label className="label">Config (JSON)</label>
-            <textarea className="input" name="config" rows={8} style={{ fontFamily: "monospace", fontSize: "0.85rem" }} defaultValue={JSON.stringify(g.config ?? {}, null, 2)} />
-            <label style={{ display: "block", margin: "0.75rem 0" }}>
-              <input type="checkbox" name="active" defaultChecked={g.active} /> Active
-            </label>
-            <button type="submit" className="btn btn-primary">Save</button>{" "}
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-          </form>
-        );
-      })()}
     </AdminShell>
   );
 }

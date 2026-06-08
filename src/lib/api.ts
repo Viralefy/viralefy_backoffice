@@ -48,6 +48,7 @@ export type Gateway = {
   provider: string;
   active: boolean;
   config: Record<string, string>;
+  accepted_currencies: string[];
 };
 
 export type Currency = {
