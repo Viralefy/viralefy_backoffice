@@ -49,8 +49,11 @@ const PROVIDERS: ProviderDef[] = [
   },
   {
     code: "heleket",
-    label: "Heleket — crypto (USDT/BTC)",
-    defaultCurrencies: ["USDT", "USD"],
+    label: "Heleket — crypto processor (multi-currency)",
+    // Heleket aceita várias cryptos de entrada — cliente escolhe BTC/ETH/LTC/etc
+    // no card de pagamento e Heleket converte pra USDT na liquidação. Adicione
+    // todas as moedas que sua conta Heleket habilitou.
+    defaultCurrencies: ["USDT", "BTC", "ETH", "LTC"],
     fields: [
       { key: "merchant_id", label: "Merchant ID" },
       { key: "api_key", label: "API key", sensitive: true },
@@ -101,7 +104,17 @@ const PROVIDER_BY_CODE: Record<string, ProviderDef> = Object.fromEntries(
 
 // Moedas disponíveis no picker. Casa com o filtro de validCurrencyCode no
 // backend (3-5 letras maiúsculas).
-const SUPPORTED_CURRENCIES = ["USDT", "USD", "EUR", "BRL", "GBP", "BTC", "LTC", "ETH", "BNB", "SOL", "TRX", "MATIC"] as const;
+// Pool de moedas suportado pelo seed em currencies. Aceitar codes fora
+// daqui é OK do backend (validCurrencyCode aceita qualquer 3-5 letras
+// maiúsculas) mas o picker só lista o que tem row em currencies — sem
+// isso, ListPaymentMethods rejeita silenciosamente o gateway na hora do
+// preview por GetByCode falhar.
+const SUPPORTED_CURRENCIES = [
+  "USDT", "USDC", "DAI",                  // stablecoins
+  "USD", "EUR", "BRL", "GBP",             // fiat
+  "BTC", "ETH", "LTC", "BNB", "SOL",      // major cryptos
+  "TRX", "MATIC", "XRP", "DOGE", "ADA",   // alt cryptos
+] as const;
 
 // Cores fixas pros chips de moeda — ajuda admin a bater de olho qual
 // gateway aceita o quê.
