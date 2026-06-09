@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   completeAdmin2FA,
@@ -27,21 +27,35 @@ export default function LoginPage() {
   const [step, setStep] = useState<Step>("credentials");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Ref evita stale-closure: state assíncrono não chegava na 1ª submission
+  // gerando 422 "missing token".
+  const turnstileTokenRef = useRef<string>("");
   const [turnstileToken, setTurnstileToken] = useState("");
 
   const [partialToken, setPartialToken] = useState("");
   const [enrollData, setEnrollData] = useState<Enroll2FAResult | null>(null);
+
+  function handleTurnstileToken(t: string) {
+    turnstileTokenRef.current = t;
+    setTurnstileToken(t);
+  }
 
   async function onSubmitCredentials(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     const fd = new FormData(e.currentTarget);
+    // Aguarda até 3s pelo Turnstile token via ref.
+    let tok = turnstileTokenRef.current;
+    for (let i = 0; i < 30 && !tok; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      tok = turnstileTokenRef.current;
+    }
     try {
       const res = await login(
         String(fd.get("email")),
         String(fd.get("password")),
-        turnstileToken,
+        tok,
       );
       // Path A: sem 2FA → token vem direto.
       if (res.token) {
@@ -108,15 +122,18 @@ export default function LoginPage() {
             <input className="input" name="email" type="email" autoComplete="email" required />
             <label className="label">Password</label>
             <input className="input" name="password" type="password" autoComplete="current-password" required />
-            <Turnstile onToken={setTurnstileToken} />
+            <Turnstile onToken={handleTurnstileToken} />
             <button
               type="submit"
               className="btn btn-primary"
               style={{ width: "100%" }}
-              disabled={loading || !turnstileToken}
+              disabled={loading}
             >
-              {loading ? "Signing in…" : turnstileToken ? "Sign in" : "Checking…"}
+              {loading ? "Signing in…" : "Sign in"}
             </button>
+            <p style={{ color: "var(--muted)", fontSize: "0.75rem", margin: "0.4rem 0 0", textAlign: "center" }}>
+              {turnstileToken ? "" : "Aguarde 2-3s — verificação anti-bot carregando."}
+            </p>
           </form>
         )}
 
