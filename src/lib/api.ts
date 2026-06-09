@@ -161,7 +161,34 @@ export type LoginResult = {
   name: string;
   role: string;
   permissions: string[];
+  // 2FA gate (PHASE-7 §7.2). Quando twofa_required ou twofa_enroll_required
+  // vier true, `token` está vazio e o cliente DEVE chamar:
+  //   - enrollAdmin2FA(partial_token) → mostra QR + backup codes
+  //   - completeAdmin2FA(partial_token, code) → token final
+  twofa_required?: boolean;
+  twofa_enroll_required?: boolean;
+  partial_token?: string;
 };
+
+export type Enroll2FAResult = {
+  secret_base32: string;
+  otpauth_url: string;
+  backup_codes: string[];
+};
+
+export async function enrollAdmin2FA(partialToken: string): Promise<Enroll2FAResult> {
+  return request<Enroll2FAResult>("/v1/auth/login/2fa/enroll", {
+    method: "POST",
+    body: JSON.stringify({ partial_token: partialToken }),
+  });
+}
+
+export async function completeAdmin2FA(partialToken: string, code: string): Promise<LoginResult> {
+  return request<LoginResult>("/v1/auth/login/2fa", {
+    method: "POST",
+    body: JSON.stringify({ partial_token: partialToken, code }),
+  });
+}
 
 export type Principal = {
   admin_id: string;
