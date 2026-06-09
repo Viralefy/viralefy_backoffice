@@ -261,6 +261,11 @@ export const adminApi = {
       `/v1/admin/proofs/pending?limit=${limit}`,
     ),
 
+  // Resolve proof_url pra URL viewável. Storage keys (sem protocol) viram
+  // presigned URL de 5min; data: e http: URLs antigos passam direto.
+  getProofURL: (id: string) =>
+    request<{ url: string }>(`/v1/admin/orders/${id}/proof-url`),
+
   issueRefund: (
     id: string,
     body: { refund_usd_cents: number; refund_type: "to_credits" | "to_gateway"; reason?: string; external_ref?: string }

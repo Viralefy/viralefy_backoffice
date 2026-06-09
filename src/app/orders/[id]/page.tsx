@@ -523,8 +523,34 @@ function ProofCard({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const isDataURL = (order.proof_url ?? "").startsWith("data:");
-  const isImg = isDataURL ? /^data:image\//.test(order.proof_url ?? "") : false;
+  const [resolvedURL, setResolvedURL] = useState<string | null>(null);
+  const [resolvedMime, setResolvedMime] = useState<string | null>(null);
+  const proofRaw = order.proof_url ?? "";
+  const isInline = proofRaw.startsWith("data:") || proofRaw.startsWith("http://") || proofRaw.startsWith("https://");
+  const isDataURL = proofRaw.startsWith("data:");
+
+  // Storage-backed proofs (key sem protocol) precisam virar presigned URL.
+  // Resolve uma vez quando montar — URL fica válida por 5min (cobre review).
+  useEffect(() => {
+    if (!proofRaw) return;
+    if (isInline) {
+      setResolvedURL(proofRaw);
+      setResolvedMime(isDataURL ? (proofRaw.match(/^data:([^;]+)/)?.[1] ?? null) : null);
+      return;
+    }
+    adminApi
+      .getProofURL(order.id)
+      .then((r) => {
+        setResolvedURL(r.url);
+        // Inferimos MIME pela extensão da key (proofs/{order}/{ts}-{rand}.{ext}).
+        const ext = proofRaw.split(".").pop()?.toLowerCase();
+        const map: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" };
+        setResolvedMime(map[ext ?? ""] ?? null);
+      })
+      .catch((e) => setErr(e instanceof Error ? e.message : "Failed to load proof"));
+  }, [order.id, proofRaw, isInline, isDataURL]);
+
+  const isImg = (resolvedMime ?? "").startsWith("image/");
   const status = order.proof_status ?? "pending";
   const statusColor = status === "approved" ? "#3cd87d" : status === "rejected" ? "#ff8a8a" : "#fcd34d";
 
@@ -575,15 +601,17 @@ function ProofCard({
       {err && <div className="alert alert-error" style={{ marginBottom: "0.5rem" }}>{err}</div>}
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
         <div style={{ flex: "1 1 280px", minWidth: 0 }}>
-          {isImg && order.proof_url ? (
+          {!resolvedURL ? (
+            <p style={{ color: "var(--muted)", fontSize: "0.8rem" }}>Resolving proof URL…</p>
+          ) : isImg ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={order.proof_url}
+              src={resolvedURL}
               alt="Payment proof"
               style={{ maxWidth: "100%", maxHeight: 360, borderRadius: "0.5rem", border: "1px solid var(--border)" }}
             />
           ) : (
-            <a href={order.proof_url ?? "#"} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+            <a href={resolvedURL} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
               📎 Open proof file
             </a>
           )}
