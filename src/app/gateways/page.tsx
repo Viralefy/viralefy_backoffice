@@ -39,12 +39,39 @@ const PROVIDERS: ProviderDef[] = [
   },
   {
     code: "woovi",
-    label: "Woovi — Pix",
+    label: "Woovi — Pix (BR-only, automated)",
     defaultCurrencies: ["BRL"],
     fields: [
       { key: "app_id", label: "App ID", sensitive: true, help: "Woovi dashboard > Apps & Webhooks" },
       { key: "base_url", label: "Base URL", placeholder: "https://api.woovi.com.br" },
       { key: "webhook_secret", label: "Webhook secret", sensitive: true, help: "HMAC secret used to verify callbacks" },
+    ],
+  },
+  {
+    code: "abacatepay",
+    label: "AbacatePay — Pix (BR-only, dynamic QR)",
+    defaultCurrencies: ["BRL"],
+    fields: [
+      {
+        key: "api_key",
+        label: "API key (abc_live_… or abc_dev_…)",
+        sensitive: true,
+        placeholder: "abc_live_…",
+        help: "AbacatePay dashboard > API Keys. Use abc_live_ in prod, abc_dev_ in HML.",
+      },
+      {
+        key: "webhook_secret",
+        label: "Webhook secret",
+        sensitive: true,
+        help: "Configure webhook URL https://api.viralefy.com/v1/webhooks/abacatepay, listen for transparent.completed. Copy the signing secret here.",
+      },
+      {
+        key: "expires_in",
+        label: "Expires in seconds (optional)",
+        placeholder: "3600",
+        help: "Default 3600 (1h). PIX dinâmico expira; cliente que demora precisa gerar novo.",
+      },
+      { key: "base_url", label: "Base URL (optional)", placeholder: "https://api.abacatepay.com", help: "Default api.abacatepay.com — só mude pra staging do AbacatePay." },
     ],
   },
   {
