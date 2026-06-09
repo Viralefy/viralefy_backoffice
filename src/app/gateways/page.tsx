@@ -103,9 +103,12 @@ const PROVIDERS: ProviderDef[] = [
         placeholder: "whsec_…",
         help: "Stripe > Developers > Webhooks > Add endpoint https://api.viralefy.com/v1/webhooks/stripe. Listen for checkout.session.completed. Copy the signing secret here.",
       },
-      { key: "success_url", label: "Success URL (optional)", placeholder: "https://www.viralefy.com/account/orders/{order_id}", help: "Default uses site URL + order id" },
-      { key: "cancel_url", label: "Cancel URL (optional)", placeholder: "https://www.viralefy.com/checkout/cancelled" },
-      { key: "payment_method_types", label: "Methods (CSV, optional)", placeholder: "card,link,boleto", help: "Default: card. boleto needs Stripe BR enabled on your account." },
+      {
+        key: "payment_method_types",
+        label: "Methods (CSV, optional)",
+        placeholder: "card,link,boleto",
+        help: "Default: card. boleto needs Stripe BR enabled on your account. Cliente success/cancel URLs are wired automatically by the API (siteURL + order id).",
+      },
     ],
   },
 ];
