@@ -85,8 +85,12 @@ const PROVIDERS: ProviderDef[] = [
       { key: "merchant_id", label: "Merchant ID" },
       { key: "api_key", label: "API key", sensitive: true },
       { key: "base_url", label: "Base URL", placeholder: "https://api.heleket.com" },
-      { key: "url_callback", label: "Callback URL", help: "Your /v1/payments/heleket/webhook" },
-      { key: "webhook_secret", label: "Webhook secret", sensitive: true },
+      {
+        key: "url_callback",
+        label: "Callback URL",
+        placeholder: "https://api.viralefy.com/v1/webhooks/heleket",
+        help: "Heleket envia POST com o status do pagamento aqui. A assinatura é validada com md5(base64(body)+api_key) — não há webhook_secret separado. Confirme no painel da Heleket (Merchant > Webhook) que o callback default casa com este valor.",
+      },
     ],
   },
   {
@@ -378,12 +382,21 @@ export default function GatewaysPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete gateway?")) return;
+    if (!confirm("Delete gateway?\n\nNote: gateways with order/invoice history can't be hard-deleted (FK). Use 'Deactivate' instead to hide it from checkout.")) return;
     try {
       await adminApi.deleteGateway(id);
       reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to delete gateway");
+      const msg = e instanceof Error ? e.message : "Failed to delete gateway";
+      // Backend retorna 409 CONFLICT quando há FK (orders/invoices apontando).
+      // Sugere o caminho correto ao admin em vez de erro genérico.
+      if (msg.toLowerCase().includes("conflict") || msg.toLowerCase().includes("409")) {
+        setError(
+          "Cannot delete: there are orders/invoices using this gateway. Click 'Deactivate' instead — it hides the gateway from checkout without breaking history.",
+        );
+      } else {
+        setError(msg);
+      }
     }
   }
 
