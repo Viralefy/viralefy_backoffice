@@ -325,6 +325,28 @@ export const adminApi = {
       method: "PATCH",
       body: JSON.stringify({ visible }),
     }),
+
+  // Gestão de admins (RBAC manager). createAdmin retorna a senha gerada
+  // UMA vez — admin promotor anota e entrega ao novo admin (não há resend).
+  listAdmins: () => request<AdminUser[]>("/v1/admin/admins"),
+  listRoles: () => request<Role[]>("/v1/admin/roles"),
+  createAdmin: (body: { email: string; name: string; role: string }) =>
+    request<{ admin: AdminUser; generated_password: string }>("/v1/admin/admins", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateAdminRole: (id: string, role: string) =>
+    request<AdminUser>(`/v1/admin/admins/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ role }),
+    }),
+  deleteAdmin: (id: string) =>
+    request<{ status: string }>(`/v1/admin/admins/${id}`, { method: "DELETE" }),
+  resetAdmin2FA: (id: string, reason?: string) =>
+    request<{ status: string }>("/v1/admin/me/2fa/disable", {
+      method: "POST",
+      body: JSON.stringify({ admin_id: id, reason: reason ?? "" }),
+    }),
 };
 
 export type AdminReview = {
@@ -398,6 +420,11 @@ export type Invoice = {
   created_at: string;
   updated_at: string;
   paid_at?: string | null;
+  // user_name/user_email são populados em AdminListInvoices via JOIN.
+  // Em AdminGetInvoice o backend retorna {invoice, user} separado; estes
+  // campos opcionais só aparecem no list.
+  user_name?: string;
+  user_email?: string;
 };
 
 export type TicketStatus = "open" | "pending" | "resolved" | "closed";
@@ -437,4 +464,21 @@ export type TicketDetail = {
   ticket: Ticket;
   view?: TicketView;
   messages: TicketMessage[];
+};
+
+// AdminUser é a representação pública de um row da tabela admins.
+// password_hash NUNCA aparece — o backend stripa antes de devolver.
+export type AdminUser = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  requires_2fa: boolean;
+  created_at: string;
+};
+
+export type Role = {
+  code: string;
+  label: string;
+  permissions: string[];
 };

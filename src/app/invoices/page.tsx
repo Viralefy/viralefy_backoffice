@@ -85,8 +85,19 @@ export default function InvoicesPage() {
                 <td style={{ padding: "0.65rem 1rem", fontFamily: "monospace", fontSize: "0.8rem" }}>
                   #{inv.id.slice(0, 8)}
                 </td>
-                <td style={{ padding: "0.65rem 1rem", fontFamily: "monospace", fontSize: "0.8rem" }}>
-                  {inv.user_id.slice(0, 8)}…
+                <td style={{ padding: "0.65rem 1rem", fontSize: "0.85rem" }}>
+                  {inv.user_name || inv.user_email ? (
+                    <>
+                      <div style={{ fontWeight: 500 }}>{inv.user_name || "—"}</div>
+                      <div style={{ color: "var(--muted)", fontSize: "0.78rem" }}>
+                        {inv.user_email || `${inv.user_id.slice(0, 8)}…`}
+                      </div>
+                    </>
+                  ) : (
+                    <span style={{ fontFamily: "monospace", fontSize: "0.8rem" }}>
+                      {inv.user_id.slice(0, 8)}…
+                    </span>
+                  )}
                 </td>
                 <td style={{ padding: "0.65rem 1rem", textAlign: "right" }}>
                   {usd(inv.amount_cents)}
