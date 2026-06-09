@@ -89,11 +89,23 @@ const PROVIDERS: ProviderDef[] = [
     label: "Stripe — credit/debit card",
     defaultCurrencies: ["USD", "EUR", "BRL", "GBP"],
     fields: [
-      { key: "secret_key", label: "Secret key (sk_live_…)", sensitive: true, help: "Stripe dashboard > Developers > API keys" },
-      { key: "webhook_secret", label: "Webhook secret (whsec_…)", sensitive: true, help: "Used to verify Stripe events when the webhook is wired" },
+      {
+        key: "secret_key",
+        label: "API key (rk_live_… preferred, sk_live_… also accepted)",
+        sensitive: true,
+        placeholder: "rk_live_… or sk_live_…",
+        help: "Restricted key from Stripe > Developers > API keys > Create restricted key. Required scopes: Checkout Sessions WRITE, Prices WRITE, Products WRITE. NEVER paste pk_… (publishable) — that key belongs in the front bundle.",
+      },
+      {
+        key: "webhook_secret",
+        label: "Webhook secret (whsec_…)",
+        sensitive: true,
+        placeholder: "whsec_…",
+        help: "Stripe > Developers > Webhooks > Add endpoint https://api.viralefy.com/v1/webhooks/stripe. Listen for checkout.session.completed. Copy the signing secret here.",
+      },
       { key: "success_url", label: "Success URL (optional)", placeholder: "https://www.viralefy.com/account/orders/{order_id}", help: "Default uses site URL + order id" },
       { key: "cancel_url", label: "Cancel URL (optional)", placeholder: "https://www.viralefy.com/checkout/cancelled" },
-      { key: "payment_method_types", label: "Methods (CSV, optional)", placeholder: "card,link,boleto", help: "Default: card" },
+      { key: "payment_method_types", label: "Methods (CSV, optional)", placeholder: "card,link,boleto", help: "Default: card. boleto needs Stripe BR enabled on your account." },
     ],
   },
 ];
