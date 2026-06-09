@@ -118,12 +118,29 @@ const SUPPORTED_CURRENCIES = [
 
 // Cores fixas pros chips de moeda — ajuda admin a bater de olho qual
 // gateway aceita o quê.
+// Paleta pinada por currency. Default fallback pra qualquer code novo —
+// SUPPORTED_CURRENCIES cresce; adicionar entrada aqui é opcional. Sem o
+// fallback, o map quebrava com TypeError "fg of undefined" ao bater num
+// code recém-adicionado (USDC/DAI/GBP/LTC/etc.).
+const DEFAULT_COLOR = { bg: "#333", fg: "#ddd" };
 const CURRENCY_COLORS: Record<string, { bg: string; fg: string }> = {
-  USDT: { bg: "#0c4a3e", fg: "#34d399" },
-  USD: { bg: "#1e3a8a", fg: "#93c5fd" },
-  EUR: { bg: "#3b1e5c", fg: "#c4b5fd" },
-  BRL: { bg: "#5c2e1e", fg: "#fca5a5" },
-  BTC: { bg: "#5c4a1e", fg: "#fcd34d" },
+  USDT:  { bg: "#0c4a3e", fg: "#34d399" },
+  USDC:  { bg: "#0c4a3e", fg: "#60a5fa" },
+  DAI:   { bg: "#3b1e5c", fg: "#fcd34d" },
+  USD:   { bg: "#1e3a8a", fg: "#93c5fd" },
+  EUR:   { bg: "#3b1e5c", fg: "#c4b5fd" },
+  GBP:   { bg: "#3b1e5c", fg: "#a7f3d0" },
+  BRL:   { bg: "#5c2e1e", fg: "#fca5a5" },
+  BTC:   { bg: "#5c4a1e", fg: "#fcd34d" },
+  ETH:   { bg: "#1e3a5c", fg: "#a5b4fc" },
+  LTC:   { bg: "#374151", fg: "#9ca3af" },
+  BNB:   { bg: "#5c4a1e", fg: "#facc15" },
+  SOL:   { bg: "#3b1e5c", fg: "#c084fc" },
+  TRX:   { bg: "#5c1e1e", fg: "#f87171" },
+  MATIC: { bg: "#3b1e5c", fg: "#a78bfa" },
+  XRP:   { bg: "#1f2937", fg: "#9ca3af" },
+  DOGE:  { bg: "#5c4a1e", fg: "#fde68a" },
+  ADA:   { bg: "#1e3a8a", fg: "#7dd3fc" },
 };
 
 type FormState = {
@@ -405,7 +422,7 @@ export default function GatewaysPage() {
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
               {SUPPORTED_CURRENCIES.map((c) => {
                 const on = form.accepted_currencies.includes(c);
-                const col = CURRENCY_COLORS[c];
+                const col = CURRENCY_COLORS[c] ?? DEFAULT_COLOR;
                 return (
                   <button
                     key={c}
