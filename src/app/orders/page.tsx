@@ -31,6 +31,10 @@ export default function OrdersPage() {
   const [q, setQ] = useState("");
   const [pendingProofCount, setPendingProofCount] = useState<number>(0);
   const [showOnlyPendingProofs, setShowOnlyPendingProofs] = useState(false);
+  // Bulk approve state — só ativa quando filtro proof_status=pending está on.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkResult, setBulkResult] = useState<string | null>(null);
 
   useEffect(() => {
     adminApi.listOrders().then(setOrders).catch((e) => setError(e.message));
@@ -96,10 +100,72 @@ export default function OrdersPage() {
         />
       </div>
 
+      {showOnlyPendingProofs && selectedIds.size > 0 && (
+        <div className="card" style={{ marginBottom: "1rem", background: "rgba(60,216,125,0.06)", border: "1px solid rgba(60,216,125,0.3)" }}>
+          <strong>{selectedIds.size} selected</strong>
+          {bulkResult && <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: "0.3rem 0" }}>{bulkResult}</p>}
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+            <button type="button" className="btn btn-primary" disabled={bulkBusy} onClick={async () => {
+              if (!confirm(`Approve ${selectedIds.size} proofs? This fires mark-as-paid + emails + tickets per order.`)) return;
+              setBulkBusy(true);
+              try {
+                const r = await adminApi.bulkProofDecision(Array.from(selectedIds), "approved");
+                const applied = r.results.filter((x) => x.status === "applied").length;
+                const skipped = r.results.filter((x) => x.status === "skipped").length;
+                const errors = r.results.filter((x) => x.status === "error").length;
+                setBulkResult(`✓ ${applied} applied · ${skipped} skipped · ${errors} errors`);
+                setSelectedIds(new Set());
+                adminApi.listOrders().then(setOrders);
+                adminApi.listPendingProofs(200).then((rows) => setPendingProofCount(rows.length)).catch(() => undefined);
+              } catch (e) {
+                setBulkResult(e instanceof Error ? e.message : "Bulk failed");
+              } finally {
+                setBulkBusy(false);
+              }
+            }}>
+              {bulkBusy ? "Working…" : `Approve ${selectedIds.size}`}
+            </button>
+            <button type="button" className="btn btn-outline" disabled={bulkBusy} onClick={async () => {
+              const note = prompt("Reason for rejection (sent in email to customer):") ?? "";
+              if (!confirm(`Reject ${selectedIds.size} proofs?`)) return;
+              setBulkBusy(true);
+              try {
+                const r = await adminApi.bulkProofDecision(Array.from(selectedIds), "rejected", note);
+                const applied = r.results.filter((x) => x.status === "applied").length;
+                setBulkResult(`✓ ${applied} rejected`);
+                setSelectedIds(new Set());
+                adminApi.listOrders().then(setOrders);
+              } catch (e) {
+                setBulkResult(e instanceof Error ? e.message : "Bulk failed");
+              } finally {
+                setBulkBusy(false);
+              }
+            }}>
+              Reject {selectedIds.size}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setSelectedIds(new Set())}>
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card" style={{ padding: 0, overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "var(--accent-dim)", borderBottom: "1px solid var(--border)" }}>
+              {showOnlyPendingProofs && (
+                <th style={{ padding: "0.65rem 0.5rem", textAlign: "center", width: 32 }}>
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id))}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedIds(new Set(filtered.map((o) => o.id)));
+                      else setSelectedIds(new Set());
+                    }}
+                  />
+                </th>
+              )}
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>ID</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Customer</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Plan</th>
@@ -117,6 +183,19 @@ export default function OrdersPage() {
                 style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}
                 onClick={() => (window.location.href = `/orders/${o.id}`)}
               >
+                {showOnlyPendingProofs && (
+                  <td style={{ padding: "0.65rem 0.5rem", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(o.id)}
+                      onChange={(e) => {
+                        const next = new Set(selectedIds);
+                        if (e.target.checked) next.add(o.id); else next.delete(o.id);
+                        setSelectedIds(next);
+                      }}
+                    />
+                  </td>
+                )}
                 <td style={{ padding: "0.65rem 1rem", fontFamily: "monospace", fontSize: "0.85rem" }}>
                   {o.id.slice(0, 8)}
                 </td>

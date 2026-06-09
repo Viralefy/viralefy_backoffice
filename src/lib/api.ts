@@ -293,6 +293,14 @@ export const adminApi = {
   getProofURL: (id: string) =>
     request<{ url: string }>(`/v1/admin/orders/${id}/proof-url`),
 
+  // Bulk approve/reject — até 50 orders por call. Cada decisão é gravada
+  // individualmente pra audit + idempotency. Retorna lista de resultados.
+  bulkProofDecision: (orderIds: string[], decision: "approved" | "rejected", note?: string) =>
+    request<{ results: Array<{ order_id: string; status: string; reason?: string }> }>(
+      "/v1/admin/proofs/bulk-decision",
+      { method: "POST", body: JSON.stringify({ order_ids: orderIds, decision, note }) },
+    ),
+
   issueRefund: (
     id: string,
     body: { refund_usd_cents: number; refund_type: "to_credits" | "to_gateway"; reason?: string; external_ref?: string }
