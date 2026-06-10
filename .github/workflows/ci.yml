@@ -60,6 +60,21 @@ jobs:
           npx @sentry/cli releases files "${{ github.sha }}" upload-sourcemaps ./.next
           npx @sentry/cli releases finalize "${{ github.sha }}"
 
+  npm-audit:
+    runs-on: ubuntu-latest
+    # Non-blocking: complementa Renovate vulnerabilityAlerts. Reporta
+    # findings high/critical sem quebrar o build; promover pra blocking
+    # depois do baseline limpo.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: npm audit (high+)
+        run: npm audit --audit-level=high
+
   gitleaks:
     runs-on: ubuntu-latest
     steps:
