@@ -1,10 +1,19 @@
 import { getToken, setToken, setSession } from "./auth";
+import { isMockAuthEnabled, mockRequest } from "./mock-auth";
 
 export { setToken, setSession };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  // MOCK_AUTH bypass: durante audits do Lighthouse não há backend
+  // disponível, então short-circuit com fixtures determinísticas para os
+  // endpoints GET conhecidos. Mutations seguem retornando erro (não
+  // queremos POSTs acidentais com payload falso).
+  if (isMockAuthEnabled() && (!init?.method || init.method === "GET")) {
+    const stub = mockRequest<T>(path);
+    if (stub !== undefined) return stub;
+  }
   const token = getToken();
   const res = await fetch(`${API_URL}${path}`, {
     ...init,

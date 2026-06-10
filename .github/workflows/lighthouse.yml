@@ -21,12 +21,12 @@ jobs:
       NEXT_PUBLIC_API_URL: https://api.viralefy.com
       NEXT_TELEMETRY_DISABLED: "1"
       NODE_ENV: production
-      # TODO: /dashboard is auth-gated. Wire up a MOCK_AUTH (or similar)
-      # bypass flag in src/middleware or the auth layout that trusts a
-      # signed CI token so Lighthouse can render the page without a real
-      # session. Until then this URL will redirect to /login and skew the
-      # SEO/perf scores.
+      # MOCK_AUTH bypass — implementado em src/lib/mock-auth.ts. Junto com
+      # NEXT_PUBLIC_APP_ENV=lighthouse, faz o AdminShell pular o redirect
+      # pra /login e o lib/api.ts devolver fixtures pra GETs conhecidos
+      # (metrics/summary, me). Sem essas duas vars o flag é ignorado.
       MOCK_AUTH: "1"
+      NEXT_PUBLIC_APP_ENV: lighthouse
     steps:
       - name: Checkout
         uses: actions/checkout@v4

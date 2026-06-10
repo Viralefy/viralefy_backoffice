@@ -9,12 +9,20 @@ on:
 permissions:
   contents: read
 
+# Secrets utilizados:
+#   - SENTRY_AUTH_TOKEN: usado pelo @sentry/nextjs plugin durante o build
+#     pra subir os source maps. Opcional — sem o token o build segue
+#     normal e o plugin loga warning.
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
     env:
       NEXT_PUBLIC_API_URL: https://api.viralefy.com
       NEXT_TELEMETRY_DISABLED: "1"
+      SENTRY_ORG: viralefy
+      SENTRY_PROJECT_BACKOFFICE: viralefy-backoffice
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +43,22 @@ jobs:
 
       - name: next build
         run: npm run build
+
+      # Upload de source maps pro Sentry — só em pushes pra main, e só
+      # quando o SENTRY_AUTH_TOKEN está disponível (PR de fork não tem).
+      # O withSentryConfig já faz upload durante o build, mas este step
+      # extra cria explicitamente a release com o SHA pra rastreabilidade
+      # de erros por deploy. Usa @sentry/cli via npx (já é peer do
+      # @sentry/nextjs, sem dep nova).
+      - name: Upload sourcemaps to Sentry
+        if: github.ref == 'refs/heads/main' && env.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_ORG: viralefy
+          SENTRY_PROJECT: viralefy-backoffice
+        run: |
+          npx @sentry/cli releases new "${{ github.sha }}"
+          npx @sentry/cli releases files "${{ github.sha }}" upload-sourcemaps ./.next
+          npx @sentry/cli releases finalize "${{ github.sha }}"
 
   gitleaks:
     runs-on: ubuntu-latest

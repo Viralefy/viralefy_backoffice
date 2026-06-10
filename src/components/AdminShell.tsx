@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { clearToken, getToken } from "@/lib/auth";
+import { isMockAuthEnabled } from "@/lib/mock-auth";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -23,12 +24,25 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
+  const mockAuth = isMockAuthEnabled();
+
   useEffect(() => {
+    // MOCK_AUTH bypass — só ativo quando NODE_ENV !== "production" no
+    // sentido do flag (verificação real em isMockAuthEnabled). Sem isso,
+    // o Lighthouse cai em /login e não consegue medir o dashboard.
+    if (mockAuth) {
+      // Marca o body para deixar óbvio em screenshots/audits que o bypass
+      // está ativo. Se isso aparecer em prod algum dia, é bug.
+      if (typeof document !== "undefined") {
+        document.body.setAttribute("data-mock-auth", "1");
+      }
+      return;
+    }
     if (!getToken()) router.replace("/login");
-  }, [router]);
+  }, [router, mockAuth]);
 
   return (
-    <div className="layout">
+    <div className="layout" data-mock-auth={mockAuth ? "1" : undefined}>
       <aside className="sidebar">
         <Link href="/dashboard" aria-label="Viralefy" style={{ display: "inline-flex", marginBottom: "1.5rem" }}>
           <Image src="/logo.png" alt="Viralefy" width={2471} height={704} priority style={{ height: 28, width: "auto" }} />
