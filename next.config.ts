@@ -10,6 +10,13 @@ const nextConfig: NextConfig = {
   env: {
     MOCK_AUTH: process.env.MOCK_AUTH ?? "",
   },
+  // Middleware roda em runtime Node (não Edge) — necessário pra prom-client
+  // capturar http_requests_total / http_request_duration_seconds via
+  // src/middleware.ts. A flag `nodeMiddleware` existe no runtime do Next 15.5
+  // (vide `Experiments` no build) mas ainda não está nos types — daí o cast.
+  experimental: {
+    nodeMiddleware: true,
+  } as NextConfig["experimental"],
 };
 
 export default withSentryConfig(nextConfig, {
