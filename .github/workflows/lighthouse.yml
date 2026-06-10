@@ -1,0 +1,65 @@
+name: lighthouse
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lhci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_API_URL: https://api.viralefy.com
+      NEXT_TELEMETRY_DISABLED: "1"
+      NODE_ENV: production
+      # TODO: /dashboard is auth-gated. Wire up a MOCK_AUTH (or similar)
+      # bypass flag in src/middleware or the auth layout that trusts a
+      # signed CI token so Lighthouse can render the page without a real
+      # session. Until then this URL will redirect to /login and skew the
+      # SEO/perf scores.
+      MOCK_AUTH: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Next.js (production)
+        run: npm run build
+
+      - name: Start Next.js (background)
+        run: npm start &
+        env:
+          PORT: "3001"
+
+      - name: Wait for app to be ready
+        run: npx wait-on http://localhost:3001 --timeout 120000
+
+      - name: Run Lighthouse CI
+        run: npx lhci autorun --upload.target=temporary-public-storage
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci
+          retention-days: 7
