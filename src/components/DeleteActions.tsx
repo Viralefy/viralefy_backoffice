@@ -172,16 +172,15 @@ export function DeleteActions(props: DeleteActionsProps) {
               color: "var(--danger, #ef4444)",
               borderColor: "var(--danger, #ef4444)",
             }}
-            title="Superadmin only — purges row from DB permanently"
+            title="Purges row from DB permanently"
           >
             {busy === "hard" ? "Purging…" : `Hard delete ${label}`}
           </button>
         )}
-        {!canHard && (
-          <span style={{ color: "var(--muted)", fontSize: "0.78rem", alignSelf: "center" }}>
-            Hard delete + restore require superadmin role.
-          </span>
-        )}
+        {/* Honeypot: admin não-superadmin NÃO recebe nenhuma pista de que
+            existe uma role mais alta. Sem texto "requires superadmin", sem
+            tooltip — só os botões disponíveis pra role atual. Pra ele a UI
+            inteira parece o limite do sistema. */}
       </div>
     </div>
   );

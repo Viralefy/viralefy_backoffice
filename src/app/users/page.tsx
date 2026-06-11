@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type UserView } from "@/lib/api";
+import { BulkActionsBar } from "@/components/BulkActionsBar";
 
 // Saldo de créditos é canônico em USD; mostrar como "$ 12.50".
 function usd(c: number) {
@@ -14,9 +15,14 @@ export default function UsersAdminPage() {
   const [list, setList] = useState<UserView[]>([]);
   const [filter, setFilter] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  function load() {
+    adminApi.listUsers().then(setList).catch((e) => setError(e.message));
+  }
 
   useEffect(() => {
-    adminApi.listUsers().then(setList).catch((e) => setError(e.message));
+    load();
   }, []);
 
   const filtered = list.filter((u) => {
@@ -43,6 +49,16 @@ export default function UsersAdminPage() {
         <table>
           <thead>
             <tr>
+              <th style={{ width: 32, textAlign: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && filtered.every((u) => selectedIds.has(u.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedIds(new Set(filtered.map((u) => u.id)));
+                    else setSelectedIds(new Set());
+                  }}
+                />
+              </th>
               <th>Name</th>
               <th>Email</th>
               <th style={{ textAlign: "right" }}>Balance</th>
@@ -53,6 +69,17 @@ export default function UsersAdminPage() {
           <tbody>
             {filtered.map((u) => (
               <tr key={u.id}>
+                <td style={{ textAlign: "center" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(u.id)}
+                    onChange={(e) => {
+                      const next = new Set(selectedIds);
+                      if (e.target.checked) next.add(u.id); else next.delete(u.id);
+                      setSelectedIds(next);
+                    }}
+                  />
+                </td>
                 <td>{u.name || "—"}</td>
                 <td style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{u.email}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: u.balance_cents > 0 ? "var(--success)" : "var(--muted)" }}>
@@ -72,6 +99,17 @@ export default function UsersAdminPage() {
         </table>
         {filtered.length === 0 && <p style={{ color: "var(--muted)", padding: "1rem" }}>No customers.</p>}
       </div>
+
+      <BulkActionsBar
+        label="customers"
+        selectedIds={Array.from(selectedIds)}
+        onClear={() => setSelectedIds(new Set())}
+        onSoftDelete={(ids, reason) => adminApi.bulkSoftDeleteUsers(ids, reason)}
+        onDone={() => {
+          setSelectedIds(new Set());
+          load();
+        }}
+      />
     </AdminShell>
   );
 }

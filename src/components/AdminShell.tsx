@@ -101,19 +101,31 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             stack normal pra deixar óbvio que é ferramenta de audit, não
             workflow do dia-a-dia. */}
         {isSuperadmin() && (
-          <Link
-            href="/trash"
-            className={pathname === "/trash" ? "active" : ""}
-            style={{
-              marginTop: "1rem",
-              borderTop: "1px solid rgba(255,255,255,0.06)",
-              paddingTop: "1rem",
-              color: pathname === "/trash" ? undefined : "#94a3b8",
-              fontSize: "0.9rem",
-            }}
-          >
-            Trash
-          </Link>
+          <>
+            <Link
+              href="/trash"
+              className={pathname === "/trash" ? "active" : ""}
+              style={{
+                marginTop: "1rem",
+                borderTop: "1px solid rgba(255,255,255,0.06)",
+                paddingTop: "1rem",
+                color: pathname === "/trash" ? undefined : "#94a3b8",
+                fontSize: "0.9rem",
+              }}
+            >
+              Trash
+            </Link>
+            <Link
+              href="/honeypot"
+              className={pathname === "/honeypot" ? "active" : ""}
+              style={{
+                color: pathname === "/honeypot" ? undefined : "#94a3b8",
+                fontSize: "0.9rem",
+              }}
+            >
+              Honeypot
+            </Link>
+          </>
         )}
         <button
           type="button"

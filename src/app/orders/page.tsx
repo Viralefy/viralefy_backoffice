@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type Order } from "@/lib/api";
+import { BulkActionsBar } from "@/components/BulkActionsBar";
 
 // Lista completa de pedidos. Cada linha é clicável → /orders/{id}.
 // Filtros por status + busca por ID/email curto. Detalhes (edição) na
@@ -154,18 +155,16 @@ export default function OrdersPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "var(--accent-dim)", borderBottom: "1px solid var(--border)" }}>
-              {showOnlyPendingProofs && (
-                <th style={{ padding: "0.65rem 0.5rem", textAlign: "center", width: 32 }}>
-                  <input
-                    type="checkbox"
-                    checked={filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id))}
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedIds(new Set(filtered.map((o) => o.id)));
-                      else setSelectedIds(new Set());
-                    }}
-                  />
-                </th>
-              )}
+              <th style={{ padding: "0.65rem 0.5rem", textAlign: "center", width: 32 }}>
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && filtered.every((o) => selectedIds.has(o.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedIds(new Set(filtered.map((o) => o.id)));
+                    else setSelectedIds(new Set());
+                  }}
+                />
+              </th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>ID</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Customer</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>Plan</th>
@@ -183,19 +182,17 @@ export default function OrdersPage() {
                 style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}
                 onClick={() => (window.location.href = `/orders/${o.id}`)}
               >
-                {showOnlyPendingProofs && (
-                  <td style={{ padding: "0.65rem 0.5rem", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(o.id)}
-                      onChange={(e) => {
-                        const next = new Set(selectedIds);
-                        if (e.target.checked) next.add(o.id); else next.delete(o.id);
-                        setSelectedIds(next);
-                      }}
-                    />
-                  </td>
-                )}
+                <td style={{ padding: "0.65rem 0.5rem", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(o.id)}
+                    onChange={(e) => {
+                      const next = new Set(selectedIds);
+                      if (e.target.checked) next.add(o.id); else next.delete(o.id);
+                      setSelectedIds(next);
+                    }}
+                  />
+                </td>
                 <td style={{ padding: "0.65rem 1rem", fontFamily: "monospace", fontSize: "0.85rem" }}>
                   {o.id.slice(0, 8)}
                 </td>
@@ -253,6 +250,18 @@ export default function OrdersPage() {
           <p style={{ color: "var(--muted)", padding: "1rem" }}>No orders found.</p>
         )}
       </div>
+      {!showOnlyPendingProofs && (
+        <BulkActionsBar
+          label="orders"
+          selectedIds={Array.from(selectedIds)}
+          onClear={() => setSelectedIds(new Set())}
+          onSoftDelete={(ids, reason) => adminApi.bulkSoftDeleteOrders(ids, reason)}
+          onDone={() => {
+            setSelectedIds(new Set());
+            adminApi.listOrders().then(setOrders);
+          }}
+        />
+      )}
     </AdminShell>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type Invoice } from "@/lib/api";
 import { can } from "@/lib/auth";
+import { BulkActionsBar } from "@/components/BulkActionsBar";
 
 const STATUS: { value: string; label: string }[] = [
   { value: "", label: "All" },
@@ -21,6 +22,7 @@ export default function InvoicesPage() {
   const [filter, setFilter] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const canMarkPaid = can("admins:manage");
 
   function reload(s: string) {
@@ -67,6 +69,16 @@ export default function InvoicesPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "var(--accent-dim)", borderBottom: "1px solid var(--border)" }}>
+              <th style={{ padding: "0.65rem 0.5rem", textAlign: "center", width: 32 }}>
+                <input
+                  type="checkbox"
+                  checked={list.length > 0 && list.every((inv) => selectedIds.has(inv.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) setSelectedIds(new Set(list.map((inv) => inv.id)));
+                    else setSelectedIds(new Set());
+                  }}
+                />
+              </th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>ID</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "left" }}>User</th>
               <th style={{ padding: "0.65rem 1rem", textAlign: "right" }}>Amount</th>
@@ -82,6 +94,17 @@ export default function InvoicesPage() {
                 style={{ borderBottom: "1px solid var(--border)", cursor: "pointer" }}
                 onClick={() => (window.location.href = `/invoices/${inv.id}`)}
               >
+                <td style={{ padding: "0.65rem 0.5rem", textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(inv.id)}
+                    onChange={(e) => {
+                      const next = new Set(selectedIds);
+                      if (e.target.checked) next.add(inv.id); else next.delete(inv.id);
+                      setSelectedIds(next);
+                    }}
+                  />
+                </td>
                 <td style={{ padding: "0.65rem 1rem", fontFamily: "monospace", fontSize: "0.8rem" }}>
                   #{inv.id.slice(0, 8)}
                 </td>
@@ -141,6 +164,17 @@ export default function InvoicesPage() {
         </table>
         {list.length === 0 && <p style={{ color: "var(--muted)", padding: "1rem" }}>No top-ups.</p>}
       </div>
+
+      <BulkActionsBar
+        label="top-ups"
+        selectedIds={Array.from(selectedIds)}
+        onClear={() => setSelectedIds(new Set())}
+        onSoftDelete={(ids, reason) => adminApi.bulkSoftDeleteInvoices(ids, reason)}
+        onDone={() => {
+          setSelectedIds(new Set());
+          reload(filter);
+        }}
+      />
     </AdminShell>
   );
 }

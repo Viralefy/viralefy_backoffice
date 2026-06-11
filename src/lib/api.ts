@@ -365,6 +365,28 @@ export const adminApi = {
       invoices: Invoice[];
       users: UserView[];
     }>(`/v1/admin/trash?limit=${limit}`),
+
+  // Honeypot — só superadmin. Lista tentativas de admins normais mexerem
+  // em superadmins (que viraram no-op + foram loggadas pra auditoria).
+  getHoneypot: (limit = 200) =>
+    request<HoneypotEntry[]>(`/v1/admin/honeypot?limit=${limit}`),
+
+  // Bulk soft delete. Aceita até 200 ids por request.
+  bulkSoftDeleteOrders: (ids: string[], reason: string) =>
+    request<BulkDeleteResult>(`/v1/admin/orders/bulk/soft-delete`, {
+      method: "POST",
+      body: JSON.stringify({ ids, reason }),
+    }),
+  bulkSoftDeleteInvoices: (ids: string[], reason: string) =>
+    request<BulkDeleteResult>(`/v1/admin/invoices/bulk/soft-delete`, {
+      method: "POST",
+      body: JSON.stringify({ ids, reason }),
+    }),
+  bulkSoftDeleteUsers: (ids: string[], reason: string) =>
+    request<BulkDeleteResult>(`/v1/admin/users/bulk/soft-delete`, {
+      method: "POST",
+      body: JSON.stringify({ ids, reason }),
+    }),
   listVisitors: (limit = 50, offset = 0) =>
     request<VisitorSummary[]>(`/v1/admin/visitors?limit=${limit}&offset=${offset}`),
   getVisitor: (vid: string) =>
@@ -541,6 +563,27 @@ export type UserEvent = {
   user_agent?: string | null;
   analytics_consent?: boolean | null;
   occurred_at: string;
+};
+
+// Resultado de bulk soft-delete: cada id pode falhar individualmente.
+export type BulkDeleteResult = {
+  succeeded: number;
+  failed?: Array<{ id: string; error: string }>;
+};
+
+// HoneypotEntry — entrada do log admin_honeypot_log. Só superadmin lê.
+export type HoneypotEntry = {
+  id: string;
+  actor_admin_id: string;
+  target_admin_id: string;
+  action: "get" | "update_role" | "delete";
+  attempted_role?: string | null;
+  metadata?: Record<string, unknown> | null;
+  attempted_at: string;
+  actor_email?: string | null;
+  actor_name?: string | null;
+  target_email?: string | null;
+  target_name?: string | null;
 };
 
 // VisitorSummary — agregado calculado pra listagem em /analytics/visitors.
