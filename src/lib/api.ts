@@ -304,6 +304,12 @@ export const adminApi = {
 
   listUsers: () => request<UserView[]>("/v1/admin/users"),
   getUser: (id: string) => request<UserDetail>(`/v1/admin/users/${id}`),
+  getUserJourney: (id: string) =>
+    request<{ journey: UserJourney; events: UserEvent[] }>(`/v1/admin/users/${id}/journey`),
+  listVisitors: (limit = 50, offset = 0) =>
+    request<VisitorSummary[]>(`/v1/admin/visitors?limit=${limit}&offset=${offset}`),
+  getVisitor: (vid: string) =>
+    request<{ summary: VisitorSummary; events: UserEvent[] }>(`/v1/admin/visitors/${encodeURIComponent(vid)}`),
   adjustCredits: (id: string, deltaCents: number, description: string) =>
     request<{ user_id: string; balance_cents: number }>(
       `/v1/admin/users/${id}/credits/adjust`,
@@ -439,6 +445,55 @@ export type UserDetail = {
   credits: { user_id: string; balance_cents: number };
   transactions: CreditTx[];
   profiles: AdminProfile[];
+};
+
+// User Journey + Events — tracking observability (admin).
+//
+// UserJourney é o agregado 1:1 derivado de user_events. landing_* é
+// first-touch (não muda após o primeiro evento). total_events e
+// total_orders são atualizados a cada Record/Upsert.
+export type UserJourney = {
+  user_id: string;
+  landing_path?: string;
+  landing_referrer?: string;
+  landing_utm?: Record<string, unknown>;
+  first_seen_at: string;
+  last_seen_at: string;
+  total_events: number;
+  total_orders: number;
+};
+
+// UserEvent — registro append-only. Cada page-view, click, modal-open vai
+// pra cá. event_type whitelisted no backend.
+export type UserEvent = {
+  id: string;
+  visitor_id: string;
+  user_id?: string | null;
+  event_type: string;
+  path?: string | null;
+  referrer?: string | null;
+  payload?: Record<string, unknown> | null;
+  utm?: Record<string, unknown> | null;
+  ip?: string | null;
+  user_agent?: string | null;
+  analytics_consent?: boolean | null;
+  occurred_at: string;
+};
+
+// VisitorSummary — agregado calculado pra listagem em /analytics/visitors.
+// user_email / user_name vêm preenchidos quando o visitor converteu.
+export type VisitorSummary = {
+  visitor_id: string;
+  user_id?: string | null;
+  user_email?: string | null;
+  user_name?: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  total_events: number;
+  landing_path?: string | null;
+  landing_utm?: Record<string, unknown> | null;
+  last_ip?: string | null;
+  last_user_agent?: string | null;
 };
 
 export type Invoice = {

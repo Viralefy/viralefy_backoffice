@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type UserDetail } from "@/lib/api";
 import { can } from "@/lib/auth";
+import { JourneyPanel } from "@/components/JourneyPanel";
 
 const TX_LABEL: Record<string, string> = {
   recharge: "Top-up",
@@ -115,6 +116,11 @@ export default function UserDetailPage() {
           </div>
         </form>
       )}
+
+      <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Tracking journey</h2>
+      <div style={{ marginBottom: "1.5rem" }}>
+        <JourneyPanel mode={{ kind: "user", userID: id }} />
+      </div>
 
       <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Profiles ({data.profiles.length})</h2>
       <div className="card" style={{ marginBottom: "1.5rem" }}>

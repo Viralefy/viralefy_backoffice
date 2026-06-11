@@ -226,6 +226,23 @@ export default function OrderDetailPage() {
           <KV k="Canonical currency" v={order.currency} />
         </Section>
 
+        {order.tracking && Object.keys(order.tracking).length > 0 && (
+          <Section title="Attribution">
+            <KV k="UTM source"   v={(order.tracking as Record<string, string>).utm_source   || "—"} />
+            <KV k="UTM medium"   v={(order.tracking as Record<string, string>).utm_medium   || "—"} />
+            <KV k="UTM campaign" v={(order.tracking as Record<string, string>).utm_campaign || "—"} />
+            <KV k="UTM term"     v={(order.tracking as Record<string, string>).utm_term     || "—"} />
+            <KV k="UTM content"  v={(order.tracking as Record<string, string>).utm_content  || "—"} />
+            <KV k="fbclid"       v={(order.tracking as Record<string, string>).fbclid       || "—"} mono />
+            <KV k="gclid"        v={(order.tracking as Record<string, string>).gclid        || "—"} mono />
+            <KV k="Landing URL"  v={(order.tracking as Record<string, string>).landing_url  || "—"} />
+            <KV k="Referrer"     v={(order.tracking as Record<string, string>).referrer     || "Direct"} />
+            <KV k="Language"     v={(order.tracking as Record<string, string>).language     || "—"} />
+            <KV k="Timezone"     v={(order.tracking as Record<string, string>).timezone     || "—"} />
+            <KV k="Visitor ID"   v={(order.tracking as Record<string, string>).client_id    || "—"} mono />
+          </Section>
+        )}
+
         <Section title="Status">
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
             <select

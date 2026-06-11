@@ -11,6 +11,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/orders", label: "Orders" },
   { href: "/users", label: "Customers" },
+  { href: "/analytics/visitors", label: "Visitors" },
   { href: "/plans", label: "Services" },
   { href: "/currencies", label: "Currencies" },
   { href: "/gateways", label: "Gateways" },
