@@ -36,7 +36,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(json?.error?.message ?? "Erro na requisição");
   }
   if (res.status === 204) return undefined as T;
-  return json.data as T;
+  // Core/dispatcher: respostas envelopadas em {"data": ...}. Auth: NÃO
+  // envelopa (POST /v1/auth/login devolve access_token no top-level).
+  // Mesmo comportamento do front (lib/api.ts).
+  const payload = (json && typeof json === "object" && "data" in json) ? (json as { data: unknown }).data : json;
+  return payload as T;
 }
 
 export type Plan = {
@@ -172,16 +176,33 @@ export type MetricsSummary = {
   daily_30d: { day: string; orders: number; revenue_usd: string }[];
 };
 
+// AdminPrincipal — shape devolvido pelo auth-service (AdminView Go).
+// PascalCase = default encoding/json. Permissions vem vazio do auth e é
+// preenchido depois pelo /v1/admin/me (core).
+export type AdminPrincipal = {
+  ID: string;
+  Email: string;
+  Name: string;
+  Role: string;
+  Permissions?: string[];
+};
+
+// LoginResult — alinhado com o JSON real do auth (POST /v1/auth/login):
+//   { access_token, access_expires_at, refresh_token, refresh_expires_at,
+//     subject_kind, admin: {...} }   // ou twofa_required+partial_token
+// Antes esperava `token`/`email`/`role` no top-level e davam undefined →
+// "can't access property 'token', e is undefined" no console.
 export type LoginResult = {
-  token: string;
-  email: string;
-  name: string;
-  role: string;
-  permissions: string[];
+  access_token?: string;
+  access_expires_at?: string;
+  refresh_token?: string;
+  refresh_expires_at?: string;
+  subject_kind?: "user" | "admin";
+  admin?: AdminPrincipal;
   // 2FA gate (PHASE-7 §7.2). Quando twofa_required ou twofa_enroll_required
-  // vier true, `token` está vazio e o cliente DEVE chamar:
+  // vier true, `access_token` vem ausente e o cliente DEVE chamar:
   //   - enrollAdmin2FA(partial_token) → mostra QR + backup codes
-  //   - completeAdmin2FA(partial_token, code) → token final
+  //   - completeAdmin2FA(partial_token, code) → access_token final
   twofa_required?: boolean;
   twofa_enroll_required?: boolean;
   partial_token?: string;

@@ -57,8 +57,8 @@ export default function LoginPage() {
         String(fd.get("password")),
         tok,
       );
-      // Path A: sem 2FA → token vem direto.
-      if (res.token) {
+      // Path A: sem 2FA → access_token vem direto.
+      if (res.access_token) {
         finishLogin(res);
         return;
       }
@@ -102,7 +102,14 @@ export default function LoginPage() {
   }
 
   function finishLogin(res: LoginResult) {
-    setSession(res.token, res.role, res.permissions);
+    // Auth devolve admin: { Role, Permissions? }. Permissions vazia até o
+    // dashboard buscar /v1/admin/me e re-popular (core enriquece com a
+    // role do DB). Fallbacks defensivos pra não crashar caso o auth tenha
+    // omitido o objeto admin (token sem 2FA é raro mas possível).
+    const token = res.access_token ?? "";
+    const role = res.admin?.Role ?? "";
+    const perms = res.admin?.Permissions ?? [];
+    setSession(token, role, perms);
     router.push("/dashboard");
   }
 
