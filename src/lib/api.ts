@@ -1,7 +1,20 @@
-import { getToken, setToken, setSession } from "./auth";
+import { clearToken, getToken, setToken, setSession } from "./auth";
 import { isMockAuthEnabled, mockRequest } from "./mock-auth";
 
 export { setToken, setSession };
+
+// dispatchSessionExpired — limpa a sessão local e avisa o AdminShell pra
+// trocar pro estado anonymous (return null) + redirecionar pra /login.
+// Roda UMA vez por janela — flags evitam loop quando múltiplos fetches em
+// paralelo recebem 401 do mesmo invalidation.
+let sessionExpiredHandled = false;
+function dispatchSessionExpired() {
+  if (typeof window === "undefined") return;
+  if (sessionExpiredHandled) return;
+  sessionExpiredHandled = true;
+  clearToken();
+  window.dispatchEvent(new CustomEvent("viralefy:session-expired"));
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 // Auth host dedicado (auth.viralefy.com). Fallback no API_URL pra não
@@ -33,6 +46,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
+    // 401 em rota autenticada do admin = sessão expirou OU foi revogada
+    // (restart do core invalida JTI cache, admin removeu o admin, etc.).
+    // Não tem o que fazer client-side a não ser limpar e ir pro login.
+    // Excluímos rotas /v1/auth/* porque 401 ali significa "credencial
+    // errada", não "sessão expirou" — usuário deve ver o erro no form.
+    if (res.status === 401 && !path.startsWith("/v1/auth/")) {
+      dispatchSessionExpired();
+    }
     throw new Error(json?.error?.message ?? "Erro na requisição");
   }
   if (res.status === 204) return undefined as T;

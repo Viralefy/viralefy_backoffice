@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { clearToken, getToken } from "@/lib/auth";
 import { isMockAuthEnabled } from "@/lib/mock-auth";
 
@@ -21,26 +21,66 @@ const links = [
   { href: "/admins", label: "Admins" },
 ];
 
+// Estados possíveis na inicialização do shell:
+//   "checking"  — SSR / 1º render no client antes de localStorage estar acessível
+//   "authed"    — token presente OU mockAuth ativo → renderiza UI
+//   "anonymous" — sem token → return null + redirect imediato (SEM mostrar shell)
+type AuthState = "checking" | "authed" | "anonymous";
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
   const mockAuth = isMockAuthEnabled();
 
+  // Gate síncrono: já no 1º render no client checamos localStorage. Sem isso
+  // o shell renderiza com nav + sidebar + main e SÓ depois o useEffect
+  // redireciona — usuário com sessão expirada via "tela admin deslogado"
+  // por uma fração de segundo, exibindo dados sensíveis.
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    if (mockAuth) return "authed";
+    if (typeof window === "undefined") return "checking"; // SSR
+    return getToken() ? "authed" : "anonymous";
+  });
+
   useEffect(() => {
-    // MOCK_AUTH bypass — só ativo quando NODE_ENV !== "production" no
-    // sentido do flag (verificação real em isMockAuthEnabled). Sem isso,
-    // o Lighthouse cai em /login e não consegue medir o dashboard.
     if (mockAuth) {
-      // Marca o body para deixar óbvio em screenshots/audits que o bypass
-      // está ativo. Se isso aparecer em prod algum dia, é bug.
       if (typeof document !== "undefined") {
         document.body.setAttribute("data-mock-auth", "1");
       }
+      setAuthState("authed");
       return;
     }
-    if (!getToken()) router.replace("/login");
+    if (!getToken()) {
+      setAuthState("anonymous");
+      // replace (não push) — o login é um destino terminal, não pode voltar
+      // pelo back e cair de novo no shell sem session.
+      router.replace("/login");
+      return;
+    }
+    setAuthState("authed");
   }, [router, mockAuth]);
+
+  // Listen pra evento global de sessão expirada (despachado pelo request<T>
+  // quando qualquer chamada admin retorna 401). Garante que se o usuário
+  // estiver navegando e o token expirar, ele cai pro login imediatamente em
+  // vez de continuar vendo o shell com mensagens de erro.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    function onExpired() {
+      setAuthState("anonymous");
+      router.replace("/login");
+    }
+    window.addEventListener("viralefy:session-expired", onExpired);
+    return () => window.removeEventListener("viralefy:session-expired", onExpired);
+  }, [router]);
+
+  // Ainda checando (SSR ou 1ª pintura) ou sem auth: NÃO renderiza shell.
+  // Retornar null é o caminho seguro — nenhum dado sensível vaza, nenhum
+  // template "deslogado" aparece. O redirect já foi disparado no useEffect.
+  if (authState !== "authed") {
+    return null;
+  }
 
   return (
     <div className="layout" data-mock-auth={mockAuth ? "1" : undefined}>
