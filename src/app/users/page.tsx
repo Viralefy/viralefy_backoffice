@@ -52,8 +52,28 @@ export default function UsersAdminPage() {
           </thead>
           <tbody>
             {filtered.map((u) => (
-              <tr key={u.id}>
-                <td>{u.name || "—"}</td>
+              <tr key={u.id} style={u.deleted_at ? { opacity: 0.55 } : undefined}>
+                <td>
+                  {u.name || "—"}
+                  {u.deleted_at && (
+                    <span
+                      style={{
+                        marginLeft: "0.5rem",
+                        background: "rgba(239,68,68,0.15)",
+                        color: "var(--danger, #ef4444)",
+                        padding: "0.1rem 0.45rem",
+                        borderRadius: "0.35rem",
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                        letterSpacing: ".04em",
+                      }}
+                      title={`Deleted ${new Date(u.deleted_at).toLocaleString()}`}
+                    >
+                      Deleted
+                    </span>
+                  )}
+                </td>
                 <td style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{u.email}</td>
                 <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: u.balance_cents > 0 ? "var(--success)" : "var(--muted)" }}>
                   {usd(u.balance_cents)}

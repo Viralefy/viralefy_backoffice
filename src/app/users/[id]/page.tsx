@@ -7,6 +7,7 @@ import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type UserDetail } from "@/lib/api";
 import { can } from "@/lib/auth";
 import { JourneyPanel } from "@/components/JourneyPanel";
+import { DeleteActions } from "@/components/DeleteActions";
 
 const TX_LABEL: Record<string, string> = {
   recharge: "Top-up",
@@ -116,6 +117,16 @@ export default function UserDetailPage() {
           </div>
         </form>
       )}
+
+      <DeleteActions
+        label="Customer"
+        deletedAt={u.deleted_at}
+        deletedBy={u.deleted_by_admin_id}
+        deleteReason={u.delete_reason}
+        onSoftDelete={(reason) => adminApi.softDeleteUser(id, reason)}
+        onHardDelete={() => adminApi.hardDeleteUser(id)}
+        onRestore={() => adminApi.restoreUser(id)}
+      />
 
       <h2 style={{ fontSize: "1rem", marginBottom: "0.5rem" }}>Tracking journey</h2>
       <div style={{ marginBottom: "1.5rem" }}>

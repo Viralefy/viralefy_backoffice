@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type Order, type OrderDetail, type OrderRefund } from "@/lib/api";
 import { can } from "@/lib/auth";
+import { DeleteActions } from "@/components/DeleteActions";
 
 // Detalhe do pedido — order completo + profile e user hidratados (clicáveis
 // para a página do usuário). Inclui visualização dos snapshots baseline e
@@ -148,6 +149,16 @@ export default function OrderDetailPage() {
           </Link>
         )}
       </div>
+
+      <DeleteActions
+        label="Order"
+        deletedAt={order.deleted_at}
+        deletedBy={order.deleted_by_admin_id}
+        deleteReason={order.delete_reason}
+        onSoftDelete={(reason) => adminApi.softDeleteOrder(order.id, reason)}
+        onHardDelete={() => adminApi.hardDeleteOrder(order.id)}
+        onRestore={() => adminApi.restoreOrder(order.id)}
+      />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         {/* Dados do pedido + cliente e perfil hidratados */}

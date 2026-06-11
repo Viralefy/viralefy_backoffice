@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AdminShell } from "@/components/AdminShell";
 import { adminApi, type InvoiceDetail } from "@/lib/api";
 import { can } from "@/lib/auth";
+import { DeleteActions } from "@/components/DeleteActions";
 
 // Detalhe de uma recarga de crédito (invoice). Mostra dados completos +
 // dados do cliente clicáveis e botão de marcar paga (com hooks).
@@ -86,6 +87,16 @@ export default function InvoiceDetailPage() {
           </span>
         </h1>
       </div>
+
+      <DeleteActions
+        label="Top-up"
+        deletedAt={inv.deleted_at}
+        deletedBy={inv.deleted_by_admin_id}
+        deleteReason={inv.delete_reason}
+        onSoftDelete={(reason) => adminApi.softDeleteInvoice(inv.id, reason)}
+        onHardDelete={() => adminApi.hardDeleteInvoice(inv.id)}
+        onRestore={() => adminApi.restoreInvoice(inv.id)}
+      />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
         <Section title="Customer">

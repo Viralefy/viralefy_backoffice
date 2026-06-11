@@ -36,6 +36,13 @@ export function can(permission: string): boolean {
   return getPermissions().includes(permission);
 }
 
+// isSuperadmin — gate de UI pra ações destrutivas (hard delete + restore).
+// Backend é a fonte de verdade (RequireSuperadmin middleware); UI usa só
+// pra esconder/desabilitar botões.
+export function isSuperadmin(): boolean {
+  return getRole() === "superadmin";
+}
+
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(PERMS_KEY);

@@ -144,6 +144,11 @@ export type Order = {
   proof_note?: string | null;
   created_at: string;
   updated_at?: string;
+  // Soft-delete (migration 045). Quando deleted_at != null, customer views
+  // escondem o registro. Admin panel mostra com badge "Deleted".
+  deleted_at?: string | null;
+  deleted_by_admin_id?: string | null;
+  delete_reason?: string | null;
 };
 
 // InvoiceDetail = invoice + user hidratado. Resposta de GET
@@ -327,6 +332,30 @@ export const adminApi = {
   getUser: (id: string) => request<UserDetail>(`/v1/admin/users/${id}`),
   getUserJourney: (id: string) =>
     request<{ journey: UserJourney; events: UserEvent[] }>(`/v1/admin/users/${id}/journey`),
+
+  // Soft / hard delete + restore. Soft = admin com perm; hard + restore =
+  // superadmin only (backend valida via RequireSuperadmin middleware). UI
+  // gateia o botão; backend é a fonte de verdade.
+  softDeleteUser: (id: string, reason: string) =>
+    request<void>(`/v1/admin/users/${id}`, { method: "DELETE", body: JSON.stringify({ reason }) }),
+  hardDeleteUser: (id: string) =>
+    request<void>(`/v1/admin/users/${id}/hard`, { method: "DELETE" }),
+  restoreUser: (id: string) =>
+    request<void>(`/v1/admin/users/${id}/restore`, { method: "POST" }),
+
+  softDeleteOrder: (id: string, reason: string) =>
+    request<void>(`/v1/admin/orders/${id}`, { method: "DELETE", body: JSON.stringify({ reason }) }),
+  hardDeleteOrder: (id: string) =>
+    request<void>(`/v1/admin/orders/${id}/hard`, { method: "DELETE" }),
+  restoreOrder: (id: string) =>
+    request<void>(`/v1/admin/orders/${id}/restore`, { method: "POST" }),
+
+  softDeleteInvoice: (id: string, reason: string) =>
+    request<void>(`/v1/admin/invoices/${id}`, { method: "DELETE", body: JSON.stringify({ reason }) }),
+  hardDeleteInvoice: (id: string) =>
+    request<void>(`/v1/admin/invoices/${id}/hard`, { method: "DELETE" }),
+  restoreInvoice: (id: string) =>
+    request<void>(`/v1/admin/invoices/${id}/restore`, { method: "POST" }),
   listVisitors: (limit = 50, offset = 0) =>
     request<VisitorSummary[]>(`/v1/admin/visitors?limit=${limit}&offset=${offset}`),
   getVisitor: (vid: string) =>
@@ -439,6 +468,10 @@ export type UserView = {
   instagram?: string;
   created_at: string;
   balance_cents: number;
+  // Soft-delete (migration 045).
+  deleted_at?: string | null;
+  deleted_by_admin_id?: string | null;
+  delete_reason?: string | null;
 };
 
 export type AdminProfile = {
@@ -539,6 +572,10 @@ export type Invoice = {
   // campos opcionais só aparecem no list.
   user_name?: string;
   user_email?: string;
+  // Soft-delete (migration 045).
+  deleted_at?: string | null;
+  deleted_by_admin_id?: string | null;
+  delete_reason?: string | null;
 };
 
 export type TicketStatus = "open" | "pending" | "resolved" | "closed";
