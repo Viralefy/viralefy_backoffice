@@ -4,6 +4,14 @@ import { isMockAuthEnabled, mockRequest } from "./mock-auth";
 export { setToken, setSession };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// Auth host dedicado (auth.viralefy.com). Fallback no API_URL pra não
+// quebrar quando rodando sem o vhost dedicado.
+const AUTH_URL = process.env.NEXT_PUBLIC_AUTH_URL ?? API_URL;
+
+function baseFor(path: string): string {
+  if (path.startsWith("/v1/auth/") || path.startsWith("/.well-known/")) return AUTH_URL;
+  return API_URL;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // MOCK_AUTH bypass: durante audits do Lighthouse não há backend
@@ -15,7 +23,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     if (stub !== undefined) return stub;
   }
   const token = getToken();
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${baseFor(path)}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
