@@ -356,6 +356,15 @@ export const adminApi = {
     request<void>(`/v1/admin/invoices/${id}/hard`, { method: "DELETE" }),
   restoreInvoice: (id: string) =>
     request<void>(`/v1/admin/invoices/${id}/restore`, { method: "POST" }),
+
+  // Trash — só superadmin. Devolve agregado de items soft-deleted das 3
+  // entidades pra renderizar na aba /trash do painel admin.
+  getTrash: (limit = 100) =>
+    request<{
+      orders: Order[];
+      invoices: Invoice[];
+      users: UserView[];
+    }>(`/v1/admin/trash?limit=${limit}`),
   listVisitors: (limit = 50, offset = 0) =>
     request<VisitorSummary[]>(`/v1/admin/visitors?limit=${limit}&offset=${offset}`),
   getVisitor: (vid: string) =>

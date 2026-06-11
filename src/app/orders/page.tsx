@@ -228,24 +228,6 @@ export default function OrdersPage() {
                   >
                     {statusLabel[o.status] ?? o.status}
                   </span>
-                  {o.deleted_at && (
-                    <span
-                      style={{
-                        marginLeft: "0.5rem",
-                        background: "rgba(239,68,68,0.15)",
-                        color: "var(--danger, #ef4444)",
-                        padding: "0.1rem 0.45rem",
-                        borderRadius: "0.35rem",
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: ".04em",
-                      }}
-                      title={`Deleted ${new Date(o.deleted_at).toLocaleString()}`}
-                    >
-                      Deleted
-                    </span>
-                  )}
                 </td>
                 <td style={{ padding: "0.65rem 1rem", textAlign: "right" }}>
                   {o.display_amount} {o.display_currency}

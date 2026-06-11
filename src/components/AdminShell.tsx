@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { clearToken, getToken } from "@/lib/auth";
+import { clearToken, getToken, isSuperadmin } from "@/lib/auth";
 import { isMockAuthEnabled } from "@/lib/mock-auth";
 
 const links = [
@@ -97,6 +97,24 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {l.label}
           </Link>
         ))}
+        {/* Trash — só superadmin vê o link. Renderizado isolado abaixo do
+            stack normal pra deixar óbvio que é ferramenta de audit, não
+            workflow do dia-a-dia. */}
+        {isSuperadmin() && (
+          <Link
+            href="/trash"
+            className={pathname === "/trash" ? "active" : ""}
+            style={{
+              marginTop: "1rem",
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+              paddingTop: "1rem",
+              color: pathname === "/trash" ? undefined : "#94a3b8",
+              fontSize: "0.9rem",
+            }}
+          >
+            Trash
+          </Link>
+        )}
         <button
           type="button"
           style={{

@@ -111,24 +111,6 @@ export default function InvoicesPage() {
                   <span style={{ fontSize: "0.85rem", color: inv.status === "paid" ? "var(--success)" : "var(--muted)" }}>
                     {inv.status}
                   </span>
-                  {inv.deleted_at && (
-                    <span
-                      style={{
-                        marginLeft: "0.5rem",
-                        background: "rgba(239,68,68,0.15)",
-                        color: "var(--danger, #ef4444)",
-                        padding: "0.1rem 0.45rem",
-                        borderRadius: "0.35rem",
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: ".04em",
-                      }}
-                      title={`Deleted ${new Date(inv.deleted_at).toLocaleString()}`}
-                    >
-                      Deleted
-                    </span>
-                  )}
                 </td>
                 <td style={{ padding: "0.65rem 1rem", fontSize: "0.85rem", color: "var(--muted)" }}>
                   {new Date(inv.created_at).toLocaleString()}
